@@ -34,18 +34,20 @@ type FORMULA =
 let a = AND(TRUE, FALSE)
 
 
+let is_this_variable term varname =
+    match term with
+        | VAR v -> v.Equals(varname)
+        | _ -> false
+
 let rec unpack conjunction (quantified_variable: string) =
-    let rec replace conjunction (replacement: Option<Term>) = 
-        match conjunction with
-            | AND (AND _ as next_conjunction, (EQUALS (VAR t1, (INT _ as t2)) as expr)  )  -> if t1.Equals(quantified_variable) && replacement.IsNone then
-                                                                                                AND(replace next_conjunction (Some t2), TRUE)
-                                                                                              else if t1.Equals(quantified_variable)  then
-                                                                                                AND(replace next_conjunction replacement, TRUE)
-                                                                                              else AND( (replace next_conjunction replacement), expr)
-            
-            | AND (EQUALS _ as eq, (AND _ as conj)) -> replace (AND (conj, eq)) replacement
-            | f -> f
-    replace conjunction None
+    let rec find conjunction = 
+        match conjunction with // looking for a literal containing quantified variable: x = 7, x = var2 
+            | AND (_, ((EQUALS (VAR t1, (_ as term))) | (EQUALS ((_ as term), VAR t1)))  ) when t1.Equals(quantified_variable) && not (is_this_variable term quantified_variable)  -> Some term
+            | AND (((EQUALS (VAR t1, (_ as term))) | (EQUALS ((_ as term), VAR t1))), _) when t1.Equals(quantified_variable)  && not (is_this_variable term quantified_variable) -> Some term
+            | AND((AND _ as t1), _)  -> find t1
+            | AND(_, (AND _ as t1))  -> find t1 // does it work как задумывалось?
+    let term = find conjunction
+    term // todo: replace x with this term
                                                     
 let rec Eliminate formula =
     formula
