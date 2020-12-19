@@ -146,10 +146,9 @@ let main argv =
     
     let formula = EXISTS(x, AND( EXISTS(y, OR(EQUALS(x, y), EQUALS(x, a))), AND(EQUALS(x, a), EQUALS(x, b) )))
     
-    let printed_formula = formula_to_str formula
     let eliminated_formula = EliminateAllQuantifiers formula
 
-    printf "Your formula: %s\n" printed_formula
+    printf "Your formula: %s\n" (formula_to_str formula)
     printf "\nFree formula: %s\n" (formula_to_str (eliminated_formula))
     (* Example:
         Your formula: Exists(x, And(Exists(y, Or(x==y, x==a)), And(x==a, x==b)))
