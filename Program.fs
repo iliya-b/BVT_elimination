@@ -45,7 +45,7 @@ let rec unpack conjunction (quantified_variable: string) =
             | AND (_, ((EQUALS (VAR t1, (_ as term))) | (EQUALS ((_ as term), VAR t1)))  ) when t1.Equals(quantified_variable) && not (is_this_variable term quantified_variable)  -> Some term
             | AND (((EQUALS (VAR t1, (_ as term))) | (EQUALS ((_ as term), VAR t1))), _) when t1.Equals(quantified_variable)  && not (is_this_variable term quantified_variable) -> Some term
             | AND((AND _ as t1), _)  -> find t1
-            | AND(_, (AND _ as t1))  -> find t1 // does it work как задумывалось?
+            | AND(_, (AND _ as t1))  -> find t1 
     let term = find conjunction
     term // todo: replace x with this term
                                                     
