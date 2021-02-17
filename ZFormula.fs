@@ -20,7 +20,7 @@ let bool_args2 (expr: Expr) = match expr.Args.[0] with
 let (|True|_|) (expr: Expr) = if expr.IsTrue then Some() else None
 let (|False|_|) (expr: Expr) = if expr.IsFalse then Some() else None
 
-let (|CONJ|_|) (expr: Expr) = if expr.IsAnd then Some expr.Args else None
+let (|CONJ|_|) (expr: Expr) = if expr.IsAnd then Some (Array.map (fun (e: Expr) -> e :?> BoolExpr) expr.Args) else None
 let (|And|_|) (expr: Expr) = if expr.IsAnd && expr.NumArgs = 2u then bool_args2 expr else None
 let (|DISJ|_|) (expr: Expr) = if expr.IsOr then Some expr.Args else None
 let (|Or|_|) (expr: Expr) = if expr.IsOr && expr.NumArgs = 2u then bool_args2 expr else None

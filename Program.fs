@@ -212,22 +212,24 @@ let rec Rewrite cube (var: BitVecExpr) model (i:int)  =
                   if List.length list = 0 then
                       False
                   else
-                      let p = List.tryPick (fun _premises -> List.fold (fun result p ->
+                      let p = List.tryPick (fun _premises -> (List.fold (fun result p ->
                                                                             if result.IsNone then
                                                                                 None
                                                                             else
 //                                                                                printfn "%s %s" (String('_', i)) (formula_to_str p)
-
-                                                                                let q = Rewrite p var model (i+1)
-
-                                                                                if result.IsSome && model |= q then
-                                                                                    Some (ctx.MkAnd(result.Value, q))
+                                                                                let e = Rewrite p var model (i+1)
+                                                                                let conjuncts = match e with
+                                                                                                    | CONJ args -> Array.toList args
+                                                                                                    | t -> [t]
+                                                                                
+                                                                                if result.IsSome && model |= e then
+                                                                                    Some (conjuncts @ result.Value)
                                                                                 else
 //                                                                                    printfn "%s failed %s" (String('_', i)) (formula_to_str (ctx.MkAnd(result.Value, q)))
                                                                                     None
-                                                                                ) (Some True) _premises) list
+                                                                                ) (Some []) _premises)) list
                       match p with
-                            | Some x -> x
+                            | Some conjuncts -> ctx.MkAnd(conjuncts)
                             | None -> False
                                   
                                         
@@ -276,7 +278,7 @@ let main argv =
 ////    let r3 = getRules r2.[0].[0] x
 ////    printfn "%s" (formula_to_str (r3.[0].[0].Simplify()))
 
-    printfn "%s" (formula_to_str (r.Simplify()))
+    printfn "%s" (formula_to_str (r))
 
     while true do true |> ignore
 
