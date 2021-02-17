@@ -1,5 +1,6 @@
 ﻿module Program
 open System
+open System.Runtime.Serialization
 open Microsoft.FSharp.Quotations
 
 open System.Collections.Generic
@@ -8,32 +9,34 @@ open Microsoft.Z3
 open ZFormula
 open Microsoft.Z3
 exception ParseError of string
-         
-    
-//    static member (+) (t1, t2) =
-//        PLUS(t1, t2)
-//    static member (*) (t1, t2) =
-//        MULT(t1, t2)
-//    static member (/) (t1, t2) =
-//        DIVIDE(t1, t2)
-//    static member (-) (t1, t2) =
-//        MINUS(t1, t2)
-//    static member (<<<) (t1, t2) =
-//        BITSHIFT_LEFT(t1, t2)
 
 let ctx = new Context()
 
 let inline (~-) (t: BoolExpr) = ctx.MkNot(t)
-let inline (-*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVSub(t1, t2)
-let inline (+*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVAdd(t1, t2)
+let inline (-*) (t1: BitVecExpr) (t2: BitVecExpr) = match t1 with  // a-b === a + (0-b)
+                                                        | Int 0 -> ctx.MkBVSub(t1, t2)
+                                                        | t1 -> ctx.MkBVAdd(t1, ctx.MkBVSub(ctx.MkBV(0, n), t2))
+let inline (+*) (t1: BitVecExpr) (t2: BitVecExpr) = match (t1, t2) with
+                                                        | (Int 0, (Int 0 as t)) -> t 
+                                                        | (Int 0, t) -> t
+                                                        | (t, Int 0) -> t
+                                                        | (t1, t2) -> ctx.MkBVAdd(t1, t2)
 let inline (=*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkEq(t1, t2)
 let inline (<=*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVULE(t1, t2)
 let inline (>=*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVUGE(t1, t2)
 let inline (>*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVUGT(t1, t2)
 let inline (<*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVULT(t1, t2)
 
+
 let n = 8u
 let nn = 8
+let map = Map
+
+
+let inline (|=) (M: Map<Expr, Expr>) (F: BoolExpr) =
+    let solver = ctx.MkSolver()
+    solver.Check([| F.Substitute( (M |> Map.toArray |> Array.map fst), ( M |> Map.toArray |> Array.map snd ) ) |]) = Status.SATISFIABLE
+    
 let _0 = ctx.MkBV(0, n)
 let _1 = ctx.MkBV(1, n)
 
@@ -42,26 +45,31 @@ let rec contains (t: Expr) (var: BitVecExpr) =
     match t with
         | Var name -> var_name.ToString()=name
         | :? BitVecExpr as t -> Array.fold (fun acc t -> acc || contains t var) false t.Args
+        | :? BoolExpr as t -> Array.fold (fun acc t -> acc || contains t var) false t.Args
         | _ -> failwith "unexpected term" 
 
 
-let getPremises conclusion (var: BitVecExpr) =
+
+let getRules conclusion (var: BitVecExpr) =
     let var_check t y z = contains t var && not (contains y var) && not (contains z var)
     let var_check2 t1 t2 y = contains t1 var && contains t2 var && not (contains y var)
     // t(x) - a terms containing x, y/z - x-free terms, a/b - any term
     match conclusion with
-        | Le(Plus(t, y), z) when var_check t y z -> [
+        | (Le(Plus(t, y), z) | Le(Plus(y, t), z) | Ge(z, Plus(t, y)) | Ge(z, Plus(y, t)))
+                when var_check t y z -> [
             [t <=* z-*y; y <=* z] // add1
-            [t <=* z-*y; _0-*y <=* z] // add2 
+            [t <=* z-*y; _0-*y <=* t] // add2 
             [_0-*y <=* t; y <=* z; -(y =* _0)] // add3
           ]
-        | Ge(Plus(t, y), z) when var_check t y z -> [
+        | (Ge(Plus(t, y), z) | Ge(Plus(y, t), z) | Le(z, Plus(t, y)) | Le(z, Plus(y, t)))
+                when var_check t y z -> [
             [t >=* z-*y; z <=* y-*_1]; // add4
             [t >=* z-*y; t <=* _0-*y-*_1; -(y =* _0)] // add5 
             [y =* _0; z <=* t] // add6
             [-(y =* _0); z <=* y-*_1; var <=* _0-*y-*_1] // add7
           ]
-        | Le(Plus(t1, y), t2) when var_check2 t1 t2 y -> [
+        | ( Le(Plus(t1, y), t2) | Le(Plus(y, t1), t2) | Ge(t2, Plus(t1, y)) | Ge(t2, Plus(y, t1)) )
+                when var_check2 t1 t2 y -> [
             [ y <=* t2 -* t1; t1 <=* t2; ]; // bothx1
             [ y <=* t2 -* t1; _0-*t1 <=* y; ];  // bothx2
             [ _0-*t1 <=* y; t1 <=* t2; -(t1 =* _0)] // bothx3
@@ -69,8 +77,8 @@ let getPremises conclusion (var: BitVecExpr) =
         | Equals(a, b) -> [ [a <=* b; b <=* a] ] // eq
         | Not(Equals(a, b)) -> [ [a <* b];  [a >* b]  ] // neq
         | Not(Le(a, b)) -> [ [b <=* a-*_1; _1 <=* a] ] // nule
-        | Le(Minus(_0, t), y) when var_check2 t t y -> [ [_0-*y <=* t] ] // inv
-        | Le(y, Minus(_0, t)) when var_check2 t t y -> [ [t <=* _0-*y] ] // inv
+        | (Le(Minus(_0, t), y) | Ge(y, Minus(_0, t))) when var_check2 t t y -> [ [_0-*y <=* t] ] // inv
+        | (Le(y, Minus(_0, t)) | Ge(Minus(_0, t), y)) when var_check2 t t y -> [ [t <=* _0-*y] ] // inv
         | Le(Mult(Int k1, Var x), Mult(Int k2, Var _x)) when x=var.FuncDecl.Name.ToString() && _x=var.FuncDecl.Name.ToString()
          -> [ [var <=* ctx.MkBV( ((pown 2 nn) * k1 / k2), n) ] ] // bothx4
         | _ -> []
@@ -85,20 +93,31 @@ let is_this_variable term varname =
 
 
                                                
-let term_to_str (term: Expr) =
+let rec term_to_str (term: Expr) =
     match term with
         | Var name -> name.ToString()
         | Int num -> num.ToString()
+        | Plus (a, Minus(Int 0, b)) -> "(" + (term_to_str a) + "-" + (term_to_str b) + ")"
+        | Plus (a, b) -> "(" + (term_to_str a) + "+" + (term_to_str b) + ")"
+        | Minus (Int 0, b) -> "(" + "-" + (term_to_str b) + ")"
+        | Minus (a, b) -> "(" + (term_to_str a) + "-" + (term_to_str b) + ")"
+        | Mult (a, b) -> "(" + (term_to_str a) + "*" + (term_to_str b) + ")"
         | expr -> expr.ToString()
         
 let rec formula_to_str (formula: Expr): string =
     match formula with
+        | CONJ args -> "And(" + String.Join(',', (Array.map (fun e -> formula_to_str e) args)) + ")" 
         | And (a, b) -> "And(" + formula_to_str(a)+", "+formula_to_str(b)+")" 
         | Or (a, b) -> "Or(" + formula_to_str(a)+", "+formula_to_str(b)+")"
         | True -> "True"
         | False -> "False"
         | Exists(name, F) -> "Exists(" + name.ToString() + ", " + (formula_to_str F) + ")"
         | Equals (t1, t2) ->  term_to_str(t1) + "==" + term_to_str(t2)
+        | Le (t1, t2) ->  term_to_str(t1) + "<=" + term_to_str(t2)
+        | Lt (t1, t2) ->  term_to_str(t1) + "<" + term_to_str(t2)
+        | Ge (t1, t2) ->  term_to_str(t1) + ">=" + term_to_str(t2)
+        | Gt (t1, t2) ->  term_to_str(t1) + ">" + term_to_str(t2)
+        | Not t ->  "Not("+formula_to_str(t)+")"
 
 let rec DNF formula = // приводит бескванторную формулу в DNF
     match formula with
@@ -167,47 +186,57 @@ let rec Eliminate formula (quantified_variable: string) : BoolExpr = // устр
             
     formula |> DNF |> extract_conjunctions |> _Eliminate
    
-let mutable total_quantifier = 2
-let rec EliminateAllQuantifiers (formula: BoolExpr) = // устраняет все кванторы \exists из формулы 
+let rec EliminateAllQuantifiers (formula: BoolExpr) (total_quantifiers: int ) = // устраняет все кванторы \exists из формулы 
     match formula with
-        | Exists(name, F) -> total_quantifier <- total_quantifier-1
-                             Eliminate (EliminateAllQuantifiers F) ("(:var " + (total_quantifier.ToString()) + ")")
+        | Exists(name, F) -> let body = (EliminateAllQuantifiers F (total_quantifiers+1))
+                             Eliminate body ("(:var " + ( (total_quantifiers+1).ToString() ) + ")")
         | (True | False | Equals _) as literal -> literal
-        | And(p1, p2) -> ctx.MkAnd(EliminateAllQuantifiers p1, EliminateAllQuantifiers p2)
-        | Or(p1, p2) -> ctx.MkOr(EliminateAllQuantifiers p1, EliminateAllQuantifiers p2)
+        | And(p1, p2) -> ctx.MkAnd(EliminateAllQuantifiers p1 total_quantifiers, EliminateAllQuantifiers p2 total_quantifiers)
+        | Or(p1, p2) -> ctx.MkOr(EliminateAllQuantifiers p1 total_quantifiers, EliminateAllQuantifiers p2 total_quantifiers)
         | v -> v
     
        
-
-let rec Rewrite cube var model  =
+let False = ctx.MkFalse()
+let True = ctx.MkTrue()
+let rec Rewrite cube (var: BitVecExpr) model (i:int)  =
+    let Var = match var with Var t1 -> t1 | _ -> failwith "unpossible"
     // todo: assert cube is cube
     // todo: assert model |= cube
     match cube with
-        | Lt(term, Mult(Int _, Var x)) when x=var -> cube
-        | Le(Mult(num, Var x), term)  when x=var -> cube // num is INT ?
-        | cube -> let list = (getPremises cube (ctx.MkBVConst(var, n)))
+        | cube when not (contains cube var) -> cube
+        | (Le(_, Mult(Int _, Var x)) | Ge(Mult(Int _, Var x), _)) when x=Var -> cube
+        | (Le(_, Var x) | Ge(Var x, _)) when x=Var -> cube
+        | (Le(Mult(Int _, Var x), _) | Ge(_, Mult(Int _, Var x)))  when x=Var -> cube
+        | (Le(Var x, _) | Ge(_, Var x))  when x=Var -> cube
+        | cube -> let list = getRules cube var
                   if List.length list = 0 then
-                      ctx.MkFalse()
+                      False
                   else
                       let p = List.tryPick (fun _premises -> List.fold (fun result p ->
-                                                                            let q = Rewrite p var model
-                                                                            if result.IsSome (*&& model |= q*) then
-                                                                                Some (ctx.MkAnd(result.Value, q))
+                                                                            if result.IsNone then
+                                                                                None
                                                                             else
-                                                                                None) (Some (ctx.MkTrue())) _premises) list
+//                                                                                printfn "%s %s" (String('_', i)) (formula_to_str p)
+
+                                                                                let q = Rewrite p var model (i+1)
+
+                                                                                if result.IsSome && model |= q then
+                                                                                    Some (ctx.MkAnd(result.Value, q))
+                                                                                else
+//                                                                                    printfn "%s failed %s" (String('_', i)) (formula_to_str (ctx.MkAnd(result.Value, q)))
+                                                                                    None
+                                                                                ) (Some True) _premises) list
                       match p with
                             | Some x -> x
-                            | None -> ctx.MkFalse()
+                            | None -> False
                                   
-                                  
-                                  
-                                       
-                                    
-                      
+                                        
 [<EntryPoint>]
 let main argv =
     let x = ctx.MkBVConst("x", n)
     let y = ctx.MkBVConst("y", n)
+    let c = ctx.MkBVConst("c", n)
+    let z = ctx.MkBVConst("z", n)
     
     let a = ctx.MkBVConst("a", n)
     let b = ctx.MkBVConst("b", n)
@@ -216,12 +245,44 @@ let main argv =
         
     let n = uint32 8
 
-    let f = ctx.MkBV(3, 9u)
+    let f = (c -* x) +* y <=* z
+    let m = Map.empty<Expr, Expr>.
+                    Add(x, ctx.MkBV(9, n)).
+                    Add(y, ctx.MkBV(255, n)).
+                    Add(z, ctx.MkBV(80, n)).
+                    Add(c, ctx.MkBV(84, n))
+//    let f2 = ctx.MkAnd(x<=*(_0-*((_0-*y)-*c)), (_0-*y)<=*(c-*_1) )
+//
+//    
+//    if m |= f2 then
+//        printfn "wow"
+//    else
+//        printfn "hmmm"
+    let r = Rewrite f x m 0
+    let k = _0
+    
+    let print_prem (p: BoolExpr list list) (i:int): unit = 
+        printfn "%s" (formula_to_str (p.[i].[0]))
+        printfn "%s" (formula_to_str p.[i].[1])
+    
+//    print_prem premises 1
+//    
+//    let r2 = getRules premises.[1].[0] x
+//    print_prem r2 1
+//    
+//    let r3 = getRules r2.[1].[1] x
+//    print_prem r3 0
+//    
+////    let r3 = getRules r2.[0].[0] x
+////    printfn "%s" (formula_to_str (r3.[0].[0].Simplify()))
 
-    
+    printfn "%s" (formula_to_str (r.Simplify()))
+
+    while true do true |> ignore
+
     let formula = ctx.MkExists([|x|], ctx.MkAnd( ctx.MkExists([|y|], ctx.MkOr(ctx.MkEq(x, y), ctx.MkEq(x, a))), ctx.MkAnd(ctx.MkEq(x, a), ctx.MkEq(x, b) )))
-    
-    let eliminated_formula = EliminateAllQuantifiers formula
+
+    let eliminated_formula = EliminateAllQuantifiers formula -1
     
     let solver = ctx.MkSolver()
     solver.Add(ctx.MkIff(formula, eliminated_formula))
@@ -230,8 +291,20 @@ let main argv =
     else 
         printfn "FAIL"
 
+    printf "Rewritten formula: %s\n" (formula_to_str r)
     printf "Your formula: %s\n" (formula_to_str formula)
     printf "\nFree formula: %s\n" (formula_to_str (eliminated_formula))
+    
+    let model =
+        Map.empty.
+            Add(a :> Expr, ctx.MkBV(13, n) :> Expr).
+            Add(b :> Expr, ctx.MkBV(1, n) :> Expr)
+            
+    if model |= eliminated_formula then
+        printfn "model -> TRUE"
+    else
+        printfn "model -> FALSE"
+
     (* Example:
         Your formula: Exists(x, And(Exists(y, Or(x==y, x==a)), And(x==a, x==b)))
         Free formula: a==b

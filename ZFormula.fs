@@ -31,20 +31,32 @@ let (|Iff|_|) (expr: Expr) = if expr.IsIff && expr.NumArgs = 2u
                              then bool_args2 expr else None
 let (|Implies|_|) (expr: Expr) = if expr.IsImplies && expr.NumArgs = 2u 
                                  then bool_args2 expr else None
-                                 
-let (|Plus|_|) (expr: Expr) = if expr.IsBVAdd then args2 expr else None
+               
 let (|Minus|_|) (expr: Expr) = if expr.IsBVSub then args2 expr else None
+                  
+let (|Plus|_|) (expr: Expr) = if expr.IsBVAdd then
+                                args2 expr
+//                              else if expr.IsBVSub then
+//                                Some ((expr.Args.[0] :?> BitVecExpr), (expr.Args.[1] :?> BitVecExpr))
+                              else
+                                  None
 let (|Mult|_|) (expr: Expr) = if expr.IsBVMul then args2 expr else None
 //let (|Var|_|) (expr: Expr) = if expr.IsConst || expr.IsVar then Some (if expr.IsFuncDecl then
 //                                                                        expr.FuncDecl.Name
 //                                                                      else Native.Z3_get_quantifier_bound_name(expr.ctx, )) else None
-let (|Var|_|) (expr: Expr) = if expr.IsConst || expr.IsVar then Some (if expr.IsFuncDecl then
-                                                                        expr.FuncDecl.Name.ToString().Replace("|", "")
-                                                                      else
-                                                                        expr.ToString().Replace("|", "")) else None
-let (|Int|_|) (expr: Expr) = if expr.IsBVNumeral then match expr with
-                                                         | :? BitVecNum as t -> Some t.Int
-                                                         | _ -> None
+let (|Var|_|) (expr: Expr) =
+    let get_var (expr: Expr) =
+        if expr.IsConst || expr.IsVar then Some (if expr.IsFuncDecl then
+                                                     expr.FuncDecl.Name.ToString().Replace("|", "")
+                                                 else
+                                                     expr.ToString().Replace("|", ""))
+        else None
+    match expr with
+//        | Minus(_, x) -> get_var x
+        | expr -> get_var expr
+let (|Int|_|) (expr: Expr) = if expr.IsBV && expr.IsNumeral then match expr with
+                                                                     | :? BitVecNum as t -> Some t.Int
+                                                                     | _ -> None
                              else None // expr.Args.[0] todo
 let (|Le|_|) (expr: Expr) = if expr.IsBVULE then args2 expr else None
 let (|Lt|_|) (expr: Expr) = if expr.IsBVULT then args2 expr else None
