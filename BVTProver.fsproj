@@ -6,8 +6,11 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="ZFormula.fs" />
+        <Compile Include="BvtPatterns.fs" />
+        <Compile Include="Bvt.fs" />
+        <Compile Include="BvtElimination.fs" />
         <Compile Include="Program.fs" />
+        <Folder Include="Tests" />
     </ItemGroup>
 
     <ItemGroup>

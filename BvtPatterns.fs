@@ -1,11 +1,10 @@
-﻿module ZFormula
+﻿module BVTProver.BvtPatterns
+
 open System.ComponentModel.Design
 open Microsoft.Z3
 
     
 let n = uint32 8
-    
-
 
 let args2 (expr: Expr) = match expr.Args.[0] with
                             | :? BitVecExpr as t -> Some (t, match expr.Args.[1] with
@@ -36,14 +35,10 @@ let (|Minus|_|) (expr: Expr) = if expr.IsBVSub then args2 expr else None
                   
 let (|Plus|_|) (expr: Expr) = if expr.IsBVAdd then
                                 args2 expr
-//                              else if expr.IsBVSub then
-//                                Some ((expr.Args.[0] :?> BitVecExpr), (expr.Args.[1] :?> BitVecExpr))
                               else
                                   None
 let (|Mult|_|) (expr: Expr) = if expr.IsBVMul then args2 expr else None
-//let (|Var|_|) (expr: Expr) = if expr.IsConst || expr.IsVar then Some (if expr.IsFuncDecl then
-//                                                                        expr.FuncDecl.Name
-//                                                                      else Native.Z3_get_quantifier_bound_name(expr.ctx, )) else None
+
 let (|Var|_|) (expr: Expr) =
     let get_var (expr: Expr) =
         if expr.IsConst || expr.IsVar then Some (if expr.IsFuncDecl then
@@ -52,7 +47,6 @@ let (|Var|_|) (expr: Expr) =
                                                      expr.ToString().Replace("|", ""))
         else None
     match expr with
-//        | Minus(_, x) -> get_var x
         | expr -> get_var expr
 let (|Int|_|) (expr: Expr) = if expr.IsBV && expr.IsNumeral then match expr with
                                                                      | :? BitVecNum as t -> Some t.Int
