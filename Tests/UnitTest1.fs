@@ -83,6 +83,8 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
                     Add(c, ctx.MkBV(84, n))
                     
     let rewritten = bvt.Rewrite f x model
+    
+    printfn "%s" (formula_to_str rewritten)
     let s = ctx.MkSolver()
     s.Add(ctx.MkNot(rewritten => f))
     

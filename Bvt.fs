@@ -9,8 +9,8 @@ type BVT(ctx: Context, n: uint32, nn: int) =
     member this.ZERO =
         ctx.MkBV(0, n)
     member this.CHECK_MODEL (M: Map<Expr, Expr>) (F: BoolExpr) =
-            let solver = ctx.MkSolver()
-            solver.Check([| F.Substitute( (M |> Map.toArray |> Array.map fst), ( M |> Map.toArray |> Array.map snd ) ) |]) = Status.SATISFIABLE
+            let s = F.Substitute( (M |> Map.toArray |> Array.map fst), ( M |> Map.toArray |> Array.map snd ) ).Simplify()
+            s.IsTrue
     
     member this.(~-) (t: BoolExpr) = ctx.MkNot(t)
     member this.(-*) (t1: BitVecExpr) (t2: BitVecExpr) = match t1 with  // a-b === a + (0-b)
