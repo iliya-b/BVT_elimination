@@ -9,7 +9,7 @@ type BVT(ctx: Context, n: uint32, nn: int) =
     member this.ZERO =
         ctx.MkBV(0, n)
     member this.CHECK_MODEL (M: Map<Expr, Expr>) (F: BoolExpr) =
-            let s = F.Substitute( (M |> Map.toArray |> Array.map fst), ( M |> Map.toArray |> Array.map snd ) ).Simplify()
+            let s = (M |> Map.toArray |> Array.unzip |> F.Substitute ).Simplify()
             s.IsTrue
     
     member this.(~-) (t: BoolExpr) = ctx.MkNot(t)
@@ -17,23 +17,15 @@ type BVT(ctx: Context, n: uint32, nn: int) =
                                                                 | Int 0 -> ctx.MkBVSub(t1, t2)
                                                                 | t1 -> ctx.MkBVAdd(t1, ctx.MkBVSub(ctx.MkBV(0, n), t2))
     member this.(+*) (t1: BitVecExpr) (t2: BitVecExpr) = match (t1, t2) with
-                                                                | (Int 0, (Int 0 as t)) -> t 
-                                                                | (Int 0, t) -> t
-                                                                | (t, Int 0) -> t
-                                                                | (t1, t2) -> ctx.MkBVAdd(t1, t2)
+                                                                | Int 0, (Int 0 as t) -> t 
+                                                                | Int 0, t
+                                                                | t, Int 0 -> t
+                                                                | t1, t2 -> ctx.MkBVAdd(t1, t2)
     member this.(=*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkEq(t1, t2)
     member this.(<=*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVULE(t1, t2)
     member this.(>=*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVUGE(t1, t2)
     member this.(>*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVUGT(t1, t2)
     member this.(<*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVULT(t1, t2)
-    
-    member this.contains (t: Expr) (var: BitVecExpr) =
-        let var_name = var.FuncDecl.Name
-        match t with
-            | Var name -> var_name.ToString()=name
-            | :? BitVecExpr as t -> Array.fold (fun acc t -> acc || this.contains t var) false t.Args
-            | :? BoolExpr as t -> Array.fold (fun acc t -> acc || this.contains t var) false t.Args
-            | _ -> failwith "unexpected term" 
 
     member this.getRules conclusion (var: BitVecExpr) =
                     
@@ -50,8 +42,8 @@ type BVT(ctx: Context, n: uint32, nn: int) =
         let _0 = ctx.MkBV(0, n)
         let _1 = ctx.MkBV(1, n)
 
-        let var_check t y z = this.contains t var && not (this.contains y var) && not (this.contains z var)
-        let var_check2 t1 t2 y = this.contains t1 var && this.contains t2 var && not (this.contains y var)
+        let var_check t y z = contains t var && not (contains y var) && not (contains z var)
+        let var_check2 t1 t2 y = contains t1 var && contains t2 var && not (contains y var)
         // t(x) - a terms containing x, y/z - x-free terms, a/b - any term
         match conclusion with
             | (Le(Plus(t, y), z) | Le(Plus(y, t), z) | Ge(z, Plus(t, y)) | Ge(z, Plus(y, t)))
@@ -94,7 +86,7 @@ type BVT(ctx: Context, n: uint32, nn: int) =
         // todo: assert cube is cube
         // todo: assert model |= cube
         match cube with
-            | cube when not (this.contains cube var) -> cube
+            | cube when not (contains cube var) -> cube
             | (Le(_, Mult(Int _, Var x)) | Ge(Mult(Int _, Var x), _)) when x=Var -> cube
             | (Le(_, Var x) | Ge(Var x, _)) when x=Var -> cube
             | (Le(Mult(Int _, Var x), _) | Ge(_, Mult(Int _, Var x)))  when x=Var -> cube
