@@ -13,14 +13,16 @@ type BVT(ctx: Context, n: uint32, nn: int) =
             s.IsTrue
     
     member this.(~-) (t: BoolExpr) = ctx.MkNot(t)
-    member this.(-*) (t1: BitVecExpr) (t2: BitVecExpr) = match t1 with  // a-b === a + (0-b)
-                                                                | Int 0 -> ctx.MkBVSub(t1, t2)
-                                                                | t1 -> ctx.MkBVAdd(t1, ctx.MkBVSub(ctx.MkBV(0, n), t2))
-    member this.(+*) (t1: BitVecExpr) (t2: BitVecExpr) = match (t1, t2) with
-                                                                | Int 0, (Int 0 as t) -> t 
-                                                                | Int 0, t
-                                                                | t, Int 0 -> t
-                                                                | t1, t2 -> ctx.MkBVAdd(t1, t2)
+    member this.(-*) (t1: BitVecExpr) (t2: BitVecExpr) =
+        match t1 with  // a-b === a + (0-b)
+           | Int 0 -> ctx.MkBVSub(t1, t2)
+           | t1 -> ctx.MkBVAdd(t1, ctx.MkBVSub(ctx.MkBV(0, n), t2))
+    member this.(+*) (t1: BitVecExpr) (t2: BitVecExpr) =
+        match (t1, t2) with
+            | Int 0, (Int 0 as t) -> t 
+            | Int 0, t
+            | t, Int 0 -> t
+            | t1, t2 -> ctx.MkBVAdd(t1, t2)
     member this.(=*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkEq(t1, t2)
     member this.(<=*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVULE(t1, t2)
     member this.(>=*) (t1: BitVecExpr) (t2: BitVecExpr) = ctx.MkBVUGE(t1, t2)
@@ -79,38 +81,36 @@ type BVT(ctx: Context, n: uint32, nn: int) =
         let (|=) (M: Map<Expr, Expr>) (F: BoolExpr) =
             let solver = ctx.MkSolver()
             solver.Check([| F.Substitute( (M |> Map.toArray |> Array.map fst), ( M |> Map.toArray |> Array.map snd ) ) |]) = Status.SATISFIABLE
-    
+        let (|ThisVar|_|) (name: string) = if name=var.FuncDecl.Name.ToString() then Some() else None
+        
+        let premises_hold (result: BoolExpr list option) p =
+            if result.IsNone then
+                None
+            else
+                let e = this.Rewrite p var model
+                let conjuncts = match e with
+                                   | CONJ args -> Array.toList args
+                                   | t -> [t]
+                                                
+                match result with
+                    | Some literals when model |= e -> Some (conjuncts @ literals)
+                    | _ -> None
+                                                                                    
         let False = ctx.MkFalse()
         let True = ctx.MkTrue()
-        let Var = match var with Var t1 -> t1 | _ -> failwith "var must be a variable"
         // todo: assert cube is cube
         // todo: assert model |= cube
         match cube with
             | cube when not (contains cube var) -> cube
-            | (Le(_, Mult(Int _, Var x)) | Ge(Mult(Int _, Var x), _)) when x=Var -> cube
-            | (Le(_, Var x) | Ge(Var x, _)) when x=Var -> cube
-            | (Le(Mult(Int _, Var x), _) | Ge(_, Mult(Int _, Var x)))  when x=Var -> cube
-            | (Le(Var x, _) | Ge(_, Var x))  when x=Var -> cube
+            | (Le(_, Mult(Int _, Var ThisVar)) | Ge(Mult(Int _, Var ThisVar), _)) -> cube
+            | (Le(_, Var ThisVar) | Ge(Var ThisVar, _))-> cube
+            | (Le(Mult(Int _, Var ThisVar), _) | Ge(_, Mult(Int _, Var ThisVar))) -> cube
+            | (Le(Var ThisVar, _) | Ge(_, Var ThisVar)) -> cube
             | cube -> let list = this.getRules cube var
                       if List.length list = 0 then
                           False
                       else
-                          let p = List.tryPick (fun _premises -> (List.fold (fun result p ->
-                                                                                if result.IsNone then
-                                                                                    None
-                                                                                else
-    //                                                                                printfn "%s %s" (String('_', i)) (formula_to_str p)
-                                                                                    let e = this.Rewrite p var model
-                                                                                    let conjuncts = match e with
-                                                                                                        | CONJ args -> Array.toList args
-                                                                                                        | t -> [t]
-                                                                                    
-                                                                                    if result.IsSome && model |= e then
-                                                                                        Some (conjuncts @ result.Value)
-                                                                                    else
-    //                                                                                    printfn "%s failed %s" (String('_', i)) (formula_to_str (ctx.MkAnd(result.Value, q)))
-                                                                                        None
-                                                                                    ) (Some []) _premises)) list
+                          let p = List.tryPick (List.fold premises_hold (Some []))  list
                           match p with
                                 | Some conjuncts -> ctx.MkAnd(conjuncts)
                                 | None -> False
