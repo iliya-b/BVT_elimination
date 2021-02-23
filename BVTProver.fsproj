@@ -6,13 +6,16 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Compile Include="MathHelpers.fs" />
         <Compile Include="Formula.fs" />
         <Compile Include="BvtPatterns.fs" />
         <Compile Include="Bvt.fs" />
         <Compile Include="BvtElimination.fs" />
         <Folder Include="Tests" />
+        <Compile Include="RewriteRules.fs" />
         <Compile Include="Mbp.fs" />
         <Compile Include="Program.fs" />
+        <Folder Include="Rules" />
     </ItemGroup>
 
     <ItemGroup>

@@ -68,7 +68,7 @@ type Formula =
     | Exists of (Term*Formula)
     | Le of Term*Term
     | Lt of Term*Term
-    | Ge of Term*Term
+    | Ge of Term*Term // see AsLe, AsLt active patterns for unambiguous matching
     | Gt of Term*Term
     | Equals of Term*Term
     | True
@@ -151,6 +151,9 @@ type Formula =
                 | True -> ctx.MkTrue()
                 | _ -> failwith "unexpected formula"
 type Term with
+    static member Zero = Int 0 
+    static member One = Int 1 
+    static member Max = Int (n-1) 
     member this.SmartInv =
         match this with
             | Inv t -> t
@@ -172,3 +175,48 @@ type Term with
     static member (>==) (t1: Term, t2: Term) = Ge(t1, t2)
     static member (>!) (t1: Term, t2: Term) = Gt(t1, t2)
     static member (<!) (t1: Term, t2: Term) = Lt(t1, t2)
+    
+let (|AsMult|_|) (e: Term) =
+     match e with
+     | Mult (a, b) -> Some (a, b)
+     | a -> Some(Int 1, a)
+
+let (|AsLe|_|) (e: Formula) =
+     match e with
+        | Le(t1, t2) 
+        | Ge(t2, t1) -> Some(t1, t2)
+//        | Lt(t1, t2)
+//        | Gt(t2, t1) -> Some(t1+(Int 1), t2) // overflow possible
+        | _ -> None
+
+
+let (|AsLt|_|) (e: Formula) =
+     match e with
+        | Lt(t1, t2) 
+        | Gt(t2, t1) -> Some(t1, t2)
+        | _ -> None
+
+type Cube (expressions: Formula[]) = // conjunction of literals, without ORs inside
+    member this.conjuncts = expressions
+    
+    member this.some_matches (|Pattern|_|) =
+        Array.tryFind (fun e -> match e with | Pattern _ -> true | _ -> false) expressions
+    member this.each_matches (|Pattern|_|) =
+         Array.forall (fun e -> match e with | Pattern _ -> true | _ -> false) expressions
+
+    member this.split (bounded_variable) =
+        let is_free (e: Formula) = not (e.contains (Var bounded_variable))
+        let (a, b) = Array.partition is_free expressions
+        Cube(a), Cube(b)
+        
+    member this.apply_model (M: Map<string, int>) = Array.forall (Formula.check M) expressions
+         
+    static member (+) (a: Cube, b: Cube) =
+        [ a.conjuncts ; b.conjuncts ] |> Array.concat |> Cube
+let (|Contains|_|) x (e: Term) = if e.contains x then Some(e) else None
+let (|FreeOf|_|) x (e: Term) = if not(e.contains x) then Some(e) else None
+    
+let (|ThisVar|_|) x (e: Term) =
+            match e with
+                | t when t=x -> Some()
+                | _ -> None
