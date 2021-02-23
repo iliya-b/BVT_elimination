@@ -220,3 +220,9 @@ let (|ThisVar|_|) x (e: Term) =
             match e with
                 | t when t=x -> Some()
                 | _ -> None
+let (|+) (|Pattern1|_|) (|Pattern2|_|) =
+    let (|UnionPattern|_|) e =
+        match e with
+            | Pattern1 a | Pattern2 a -> Some(a)
+            | _ -> None
+    (|UnionPattern|_|)

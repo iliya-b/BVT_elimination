@@ -12,10 +12,11 @@
         <Compile Include="Bvt.fs" />
         <Compile Include="BvtElimination.fs" />
         <Folder Include="Tests" />
-        <Compile Include="RewriteRules.fs" />
+        <Compile Include="Rules\Rule1.fs" />
+        <Compile Include="Rules\Rule2.fs" />
+        <Compile Include="Rules\Rule3.fs" />
         <Compile Include="Mbp.fs" />
         <Compile Include="Program.fs" />
-        <Folder Include="Rules" />
     </ItemGroup>
 
     <ItemGroup>

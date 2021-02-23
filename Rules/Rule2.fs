@@ -1,4 +1,4 @@
-module BVTProver.RewriteRules
+module BVTProver.RewriteRules.Rule2
 open BVTProver
 open Formula
 open MathHelpers
