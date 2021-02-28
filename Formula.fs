@@ -1,6 +1,7 @@
 module BVTProver.Formula
 
 open System
+open BVTProver
 open Microsoft.Z3
 let n = 256
 let n2 = 8u
@@ -39,6 +40,14 @@ type Term =
             | Div (t1, d) -> ((t1.interpret M) / d) %% n
             | Inv t -> (-(t.interpret M)) %% n
             | Int c -> c %% n
+    member this.substitute (M: Map<Term, Term>) =
+         match this with
+            | t when M.ContainsKey(t) -> M.[t]
+            | Mult (t1, t2) -> Mult(t1.substitute M, t2.substitute M)
+            | Plus (t1, t2) -> Plus (t1.substitute M, t2.substitute M)
+            | Div (t1, d) -> Div(t1.substitute M, d)
+            | Inv t -> Inv(t.substitute M)
+            | t -> t
     member this.contains (var: Term) =
             match this with
                 | t when t=var -> true
@@ -109,6 +118,22 @@ type Formula =
             | Iff (t1, t2) ->  (M |= t1) = (M |= t2) 
             | Exists(name, F) -> failwith "try to check model on quantified formula"
             | _ -> failwith "Unknown formula"
+            
+    member this.substitute (M: Map<Term, Term>): Formula =
+         let subst_all (e: Formula) = e.substitute M
+         match this with 
+            | And args -> And(Array.map subst_all args) 
+            | Or args -> Or(Array.map subst_all args) 
+            | Equals (t1, t2) -> Equals(t1.substitute M, t2.substitute M) 
+            | Le (t1, t2) ->  Le(t1.substitute M, t2.substitute M) 
+            | Lt (t1, t2) ->  Lt(t1.substitute M, t2.substitute M) 
+            | Ge (t1, t2) ->  Ge(t1.substitute M, t2.substitute M) 
+            | Gt (t1, t2) -> Gt(t1.substitute M, t2.substitute M) 
+            | Not t -> Not (t.substitute M)
+            | Implies (t1, t2) -> Implies(t1.substitute M, t2.substitute M) 
+            | Iff (t1, t2) ->  Iff (t1.substitute M, t2.substitute M) 
+            | Exists(name, F) -> failwith "try to substitute terms on quantified formula"
+            | (True | False) as constant -> constant 
             
 
 
@@ -204,8 +229,8 @@ type Cube (expressions: Formula[]) = // conjunction of literals, without ORs ins
     member this.each_matches (|Pattern|_|) =
          Array.forall (fun e -> match e with | Pattern _ -> true | _ -> false) expressions
 
-    member this.split (bounded_variable) =
-        let is_free (e: Formula) = not (e.contains (Var bounded_variable))
+    member this.split (x) =
+        let is_free (e: Formula) = not (e.contains x)
         let (a, b) = Array.partition is_free expressions
         Cube(a), Cube(b)
         

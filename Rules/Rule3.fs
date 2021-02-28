@@ -24,4 +24,13 @@ let (|Rule3|_|) (M: Map<string, int>) x (cube: Cube) =
     match cube.some_matches  ((|BoundWithDivision|_|) M x) with
         | Some ((BoundWithDivision M x inequality) as conjunct)  -> Some (inequality, conjunct)
         | _ -> None
+let apply_rule3 M x (cube: Cube) (inequality, conjunct)=
+    let rew =
+        match inequality with
+            | Upper_ (f, b, d) -> [| f <== (d + Term.One) * (Int b) - Term.One ; d <== Div(Term.Max, b) |]
+            | Lower_ (f, y, g) -> [| (g + Term.One) * (Int y) - Term.One <! f ; g <== Div(Term.Max, y) |]
+
+    [ (Array.except [ conjunct ] cube.conjuncts) ; rew ]
+        |> Array.concat
+        |> Cube
         

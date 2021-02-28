@@ -3,6 +3,7 @@
   &lt;TestAncestor&gt;
     &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.TestEliminationProducesEquivalentFormula&lt;/TestId&gt;
     &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.TestNormalizationImpliesFormulaAndSatisfiedByItsModel&lt;/TestId&gt;
+    &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.TestMbpInterpolatesTheFormula&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=coeffs/@EntryIndexedValue">True</s:Boolean>

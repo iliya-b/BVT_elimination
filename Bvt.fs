@@ -92,7 +92,6 @@ type BVT(ctx: Context, n: uint32, nn: int) =
                       if List.length list = 0 then
                           False
                       else
-                          
                           let p = List.tryPick (List.fold premises_hold (Some []))  list
                           match p with
                                 | Some conjuncts -> And (List.toArray conjuncts)

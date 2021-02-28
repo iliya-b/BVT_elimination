@@ -7,27 +7,11 @@ open Microsoft.Z3
 open BVTProver.Bvt
 open BVTProver.Formula
 open BvtElimination
+open Mbp
 
 [<SetUp>]
 let Setup () =
     ()
-
-
-[<Test>]
-let TestEliminationProducesEquivalentFormula() =
-    let x = Var "x"
-    let y = Var "y"
-    let a = Var "a"
-    let b = Var "b"
-    
-    let formula = Exists(x, And([| Exists(y, Or([| (x===y); (x===a) |]) ) ; And ([| x===a; x===b |] ) |]))
-
-    let eliminated_formula = EliminateAllQuantifiers formula
-    0
-//    let solver = ctx.MkSolver()
-//    solver.Add(Not(Iff(formula, eliminated_formula)))
-    
-//    Assert.AreEqual(solver.Check(), Status.UNSATISFIABLE)
 
 
 [<Test>]
@@ -71,4 +55,23 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
     Assert.True(model |= f)
     Assert.True(model |= rewritten)
     Assert.AreEqual(Status.UNSATISFIABLE, s.Check()) // check rewritten => f
-
+    
+[<Test>]
+let TestMbpInterpolatesTheFormula () =
+    let model = Map.empty<string, int>.
+                        Add("a", 10).
+                        Add("b", 100).
+                        Add("x", 5)
+    
+    let x = Var "x"
+    let a = Var "a"
+    let b = Var "b"
+    
+    let cube = [| a <! (Int 4)*x ; (Int 6)*x <== b |]
+    let f = MbpZ model x (Cube cube)
+    Assert.AreEqual(3, f.conjuncts.Length)
+    Assert.Contains(Le (Var "a",Int 85), f.conjuncts)
+    Assert.Contains(Le (Var "b",Int 127), f.conjuncts)
+    Assert.Contains(Lt (Div (Mult (Var "a",Int 3),12),Div (Mult (Var "a",Int 3),12)), f.conjuncts)
+    // todo: not rely on order of arguments in commuting operations
+    printfn "%A" f.conjuncts
