@@ -1,5 +1,6 @@
 module BVTProver.Formula
-
+open BVTProver
+open BVTProver.Z3Patterns 
 open System
 open BVTProver
 open Microsoft.Z3
@@ -68,6 +69,13 @@ type Term =
             | Div (t1, d) -> ctx.MkBVUDiv(t1.z3 ctx, ctx.MkBV(d, n2))
             | Inv t -> ctx.MkBVNeg(t.z3 ctx) 
             | Int c -> ctx.MkBV(c, n2) :> BitVecExpr
+    static member from_z3 (expr: Expr) =
+        match expr with 
+            | ZVar name -> Var name
+            | ZMult (t1, t2) ->  Mult(Term.from_z3 t1, Term.from_z3 t2)
+            | ZPlus (t1, t2) -> Plus(Term.from_z3 t1, Term.from_z3 t2)
+            | ZInt c -> Int c
+            | _ -> failwith "unexpected z3 expression"
 type Formula =
     | And of Formula[]
     | Or of Formula[]
@@ -175,6 +183,18 @@ type Formula =
                 | False -> ctx.MkFalse()
                 | True -> ctx.MkTrue()
                 | _ -> failwith "unexpected formula"
+                
+    static member from_z3 (expr: Expr) =
+        match expr with 
+            | ZEquals (t1, t2) -> Equals(Term.from_z3 t1, Term.from_z3 t2)
+            | ZLe (t1, t2) -> Le(Term.from_z3 t1, Term.from_z3 t2)
+            | ZLt (t1, t2) -> Lt(Term.from_z3 t1, Term.from_z3 t2)
+            | ZCONJ args ->  And(Array.map Formula.from_z3 args)
+            | ZDISJ args ->  Or(Array.map Formula.from_z3 args)
+            | ZNot t -> Not (Formula.from_z3 t)
+            | ZImplies (a, b) -> Implies (Formula.from_z3 a, Formula.from_z3 b)
+            | ZExists (var, f) -> Exists (Var (var.ToString()), Formula.from_z3 f)
+            | _ -> failwith "unexpected z3 expression"
 type Term with
     static member Zero = Int 0 
     static member One = Int 1 
