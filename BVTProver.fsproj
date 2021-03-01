@@ -6,11 +6,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <Compile Include="BvtPatterns.fs" />
+        <Compile Include="MathHelpers.fs" />
+        <Compile Include="Formula.fs" />
         <Compile Include="Bvt.fs" />
-        <Compile Include="BvtElimination.fs" />
-        <Compile Include="Program.fs" />
         <Folder Include="Tests" />
+        <Compile Include="Rules\Rule1.fs" />
+        <Compile Include="Rules\Rule2.fs" />
+        <Compile Include="Rules\Rule3.fs" />
+        <Compile Include="Rules\Rule4.fs" />
+        <Compile Include="Mbp.fs" />
+        <Compile Include="Program.fs" />
     </ItemGroup>
 
     <ItemGroup>
