@@ -1,9 +1,10 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=fd0bc3b3_002D528a_002D4d75_002Da15d_002D2b1440f67427/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Test1" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
-    &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.TestEliminationProducesEquivalentFormula&lt;/TestId&gt;
-    &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.TestNormalizationImpliesFormulaAndSatisfiedByItsModel&lt;/TestId&gt;
-    &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.TestMbpInterpolatesTheFormula&lt;/TestId&gt;
+    &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.Mbp.TestMbpInterpolatesTheFormula&lt;/TestId&gt;
+    &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.Mbp.TestMbpKeepsFreeConjunct&lt;/TestId&gt;
+    &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.Rules.TestRule3&lt;/TestId&gt;
+    &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.Mbp.TestNormalizationImpliesFormulaAndSatisfiedByItsModel&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=coeffs/@EntryIndexedValue">True</s:Boolean>

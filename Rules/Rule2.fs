@@ -11,13 +11,11 @@ type BoundingInequality =
     static member is_upper = function Upper _ -> true | _ -> false
        
 type RuleType = All | Any
-let (|Bounds|_|) x (conjunct: Formula) = // such that num*x <= term
-    let (|Open|_|) = (|FreeOf|_|) x
-    let (|ThisVar|_|) = (|ThisVar|_|) x
+let (|Bounds|_|) x (conjunct: Formula) = 
     
     match conjunct with
-        | AsLe (AsMult (ThisVar, Int d | Int d, ThisVar), Open t) -> Some (Upper(d, t))
-        | AsLt (Open t, AsMult (ThisVar, Int d | Int d, ThisVar)) -> Some (Lower(d, t))
+        | AsLe (AsMult (ThisVar x, Int d | Int d, ThisVar x), FreeOf x t) -> Some (Upper(d, t)) // β×x ≤ b
+        | AsLt (FreeOf x t, AsMult (ThisVar x, Int d | Int d, ThisVar x)) -> Some (Lower(d, t)) // a < α×x
         | _ -> None
 
 let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
@@ -48,51 +46,36 @@ let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
         None
 
 let apply_rule2 M x (cube: Cube) (lcm, bounds) =
-    let a, b = Array.partition BoundingInequality.is_upper bounds
+    let upper_bounds, lower_bounds = Array.partition BoundingInequality.is_upper bounds
+    let interpreted = function | Upper (num, t) | Lower (num, t) -> (t.interpret M) * (lcm / num)
+ 
+    
+    let sup = upper_bounds |> Array.minBy interpreted |> BoundingInequality.tuplify
+    let inf = lower_bounds |> Array.maxBy interpreted |> BoundingInequality.tuplify
+    
 
-    let u_coeffs, upper_bounds =
-                    a
-                    |> (Array.map BoundingInequality.tuplify)
-                    |> Array.unzip
-
-    let l_coeffs, lower_bounds =
-                    b
-                    |> (Array.map BoundingInequality.tuplify)
-                    |> Array.unzip
-
-    let (|Bounds|_|) = (|Bounds|_|) x
-
-    let exact_bound a b =
-                    (a, b)
-                    ||> Array.map2 (fun n (t: Term) -> (t.interpret M) * (lcm / n))
-                    |> Array.indexed
-                    |> Array.maxBy snd
-                    |> fst
-
-    let U = exact_bound u_coeffs upper_bounds
-    let L = exact_bound l_coeffs lower_bounds
-    let coefficient_L = Array.get l_coeffs L
-    let coefficient_U = Array.get u_coeffs U
-    let term_L = Array.get lower_bounds L
-    let term_U = Array.get upper_bounds U
-    let LCM = lcm
-
-    let constraints_on_bounds = Array.map2 (fun c t -> t <== (Int((n - 1) / (LCM / c))))
+    let coefficient_L = fst inf
+    let coefficient_U = fst sup
+    let term_L = snd inf
+    let term_U = snd sup
+    
+    let side_constraint c t = t <== (Int((n - 1) / (lcm / c)))
+    let mk_constraints_on_bounds = function | Lower (num, t) | Upper (num, t) -> side_constraint num t
+    
     let make_conjunct2 conjunct =
         match conjunct with
             | Upper (num, t) when num <> coefficient_U && t <> term_U ->
-                        Some((t* (Int(LCM / num)) <== term_L * (Int(LCM / coefficient_L))))
+                        Some((t* (Int(lcm / num)) <== term_L * (Int(lcm / coefficient_L))))
             | Lower (num, t) when num <> coefficient_L && t <> term_L ->
-                        Some((term_U * (Int(LCM / coefficient_U)) <== t * (Int(LCM / num))))
+                        Some((term_U * (Int(lcm / coefficient_U)) <== t * (Int(lcm / num))))
             | _ -> None
 
-    let c1 = (l_coeffs, lower_bounds) ||> constraints_on_bounds
-
-    let c2 = (u_coeffs, upper_bounds) ||> constraints_on_bounds
+    let c1 = lower_bounds |> Array.map mk_constraints_on_bounds
+    let c2 = upper_bounds |> Array.map mk_constraints_on_bounds
 
     let c3 = cube.conjuncts
-                |> (Array.choose (|Bounds|_|))
+                |> (Array.choose ((|Bounds|_|) x))
                 |> (Array.choose make_conjunct2)
 
-    let c4 = [| Div(term_L * (Int(LCM / coefficient_L)), LCM) <! Div(term_L * (Int(LCM / coefficient_L)), LCM) |]
-    [ c1; c2; c3; c4 ] |> Array.concat |> Cube    
+    let c4 = [| Div(term_L * (Int(lcm / coefficient_L)), lcm) <! Div(term_L * (Int(lcm / coefficient_L)), lcm) |]
+    [ c1; c2; c3; c4 ] |> Array.concat |> Cube

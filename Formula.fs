@@ -170,7 +170,7 @@ type Formula =
                 | Gt (t1, t2) -> ctx.MkBVUGT(t1.z3 ctx, t2.z3 ctx)
                 | Implies (t1, t2) -> ctx.MkImplies(t1.z3 ctx, t2.z3 ctx)
                 | Iff (t1, t2) -> ctx.MkIff(t1.z3 ctx, t2.z3 ctx)
-                | Exists (t, t2) -> ctx.MkExists([| |], t2.z3 ctx) :> BoolExpr
+                | Exists (t, t2) -> ctx.MkExists([| t.z3 ctx |], t2.z3 ctx) :> BoolExpr
                 | Not t -> ctx.MkNot(t.z3 ctx)
                 | False -> ctx.MkFalse()
                 | True -> ctx.MkTrue()
@@ -195,6 +195,7 @@ type Term with
 //    static member (/) (t1: Term, t2: Term) = Div(t1, t2)
     
     static member (*) (t1: Term, t2: Term) = Mult(t1, t2)
+    static member (*) (t1: int, t2: Term) = Mult(Int t1, t2)
     static member (===) (t1: Term, t2: Term) = Equals(t1, t2)
     static member (<==) (t1: Term, t2: Term) = Le(t1, t2)
     static member (>==) (t1: Term, t2: Term) = Ge(t1, t2)
@@ -223,6 +224,7 @@ let (|AsLt|_|) (e: Formula) =
 
 type Cube (expressions: Formula[]) = // conjunction of literals, without ORs inside
     member this.conjuncts = expressions
+    member this.as_formula = And(this.conjuncts)
     
     member this.some_matches (|Pattern|_|) =
         Array.tryFind (fun e -> match e with | Pattern _ -> true | _ -> false) expressions
@@ -232,8 +234,9 @@ type Cube (expressions: Formula[]) = // conjunction of literals, without ORs ins
     member this.split (x) =
         let is_free (e: Formula) = not (e.contains x)
         let (a, b) = Array.partition is_free expressions
-        Cube(a), Cube(b)
-        
+        Cube a, Cube b
+    member this.remove (conjunct) =
+        Cube(Array.except [conjunct] this.conjuncts)
     member this.apply_model (M: Map<string, int>) = Array.forall (Formula.check M) expressions
          
     static member (+) (a: Cube, b: Cube) =

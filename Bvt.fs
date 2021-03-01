@@ -6,12 +6,6 @@ open Formula
 
 type BVT(ctx: Context, n: uint32, nn: int) =
         
-    member this.ZERO =
-        ctx.MkBV(0, n)
-    member this.CHECK_MODEL (M: Map<Expr, Expr>) (F: BoolExpr) =
-            let s = (M |> Map.toArray |> Array.unzip |> F.Substitute ).Simplify()
-            s.IsTrue
-
     member this.getRules conclusion (var: Term) =
 
         let _0 = Int 0
@@ -60,41 +54,27 @@ type BVT(ctx: Context, n: uint32, nn: int) =
             | _ -> []
      
 
-    member this.Rewrite (cube: Formula) (var: Term) model i: Formula = // normalization procedure
-        
-        let (|ThisVar|_|) (term: Term) = if term=var then Some() else None
-        
-        let premises_hold (result: Formula list option) p =
-            if result.IsNone then
-                None
-            else
-                (*printfn "%s %O" (String('_', i)) p*)
-
-                let e = this.Rewrite p var model (i+1)
-                let conjuncts = match e with
-                                   | And args -> Array.toList args
-                                   | t -> [t]
-                                                
-                match result with
-                    | Some literals when model |= e -> Some (conjuncts @ literals)
-                    | _ -> (* printfn "%s failed %O" (String('_', i))  (And (conjuncts @ result.Value |> List.toArray)) *)
-                           None
+    member this.Rewrite (cube: Formula) (var: Term) model i: Formula list = // normalization procedure
+               
+        let premises_hold premises =
+          let f = List.collect (fun p -> this.Rewrite p var model (i+1)) premises
+          if model |= And(Array.ofList f) then                                      
+              Some f
+          else
+              None
                     
         // todo: assert cube is cube
         // todo: assert model |= cube
         match cube with
-            | cube when not (cube.contains var) -> cube
-            | (Le(_, Mult(Int _, ThisVar)) | Ge(Mult(Int _, ThisVar), _)) -> cube
-            | (Le(_, ThisVar) | Ge(ThisVar, _))-> cube
-            | (Le(Mult(Int _, ThisVar), _) | Ge(_, Mult(Int _, ThisVar))) -> cube
-            | (Le(ThisVar, _) | Ge(_, ThisVar)) -> cube
-            | cube -> let list = this.getRules cube var
-                      if List.length list = 0 then
-                          False
-                      else
-                          let p = List.tryPick (List.fold premises_hold (Some []))  list
-                          match p with
-                                | Some conjuncts -> And (List.toArray conjuncts)
-                                | None -> False
+            | cube when not (cube.contains var) -> [cube]
+            | (Le(_, Mult(Int _, ThisVar var)) | Ge(Mult(Int _, ThisVar var), _)) 
+            | (Le(_, ThisVar var) | Ge(ThisVar var, _))
+            | (Le(Mult(Int _, ThisVar var), _) | Ge(_, Mult(Int _, ThisVar var))) 
+            | (Le(ThisVar var, _) | Ge(_, ThisVar var)) -> [cube]
+            | cube -> let applicable_rules = this.getRules cube var
+                      let p = List.tryPick premises_hold applicable_rules
+                      match p with
+                       | Some conjuncts -> conjuncts
+                       | None -> [False]
                                       
                                           

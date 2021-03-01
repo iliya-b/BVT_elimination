@@ -8,7 +8,6 @@
     <ItemGroup>
         <Compile Include="MathHelpers.fs" />
         <Compile Include="Formula.fs" />
-        <Compile Include="BvtPatterns.fs" />
         <Compile Include="Bvt.fs" />
         <Compile Include="BvtElimination.fs" />
         <Folder Include="Tests" />

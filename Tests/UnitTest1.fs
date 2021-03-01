@@ -1,7 +1,8 @@
-module Tests
+module Tests.Mbp
 
 open System
 open BVTProver
+open Microsoft.Z3
 open NUnit.Framework
 open Microsoft.Z3
 open BVTProver.Bvt
@@ -35,26 +36,20 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
                     Add("z", 80).
                     Add("c", 84)
                     
-    let rewritten = bvt.Rewrite f x model 0
+    let rewritten = And(Array.ofList (bvt.Rewrite f x model 0))
     
     
     printfn "%O" f
     printfn "%O" rewritten
     
-    let checker = Not(rewritten => f)
     let s = ctx.MkSolver()
-    let X = ctx.MkBVConst("x", 8u)
-    let Y = ctx.MkBVConst("y", 8u)
-//    s.Add(ctx.MkNot(ctx.MkEq(ctx.MkBVSub(X, Y), ctx.MkBVAdd(X, ctx.MkBVNeg(Y))) ))
-//    Assert.AreEqual(Status.UNSATISFIABLE, s.Check()) // check rewritten => f
-
-    let zf = checker.z3 ctx
-
+    let zf = Not(rewritten => f).z3 ctx
     s.Add(zf)
 
     Assert.True(model |= f)
     Assert.True(model |= rewritten)
     Assert.AreEqual(Status.UNSATISFIABLE, s.Check()) // check rewritten => f
+    
     
 [<Test>]
 let TestMbpInterpolatesTheFormula () =
@@ -67,11 +62,39 @@ let TestMbpInterpolatesTheFormula () =
     let a = Var "a"
     let b = Var "b"
     
-    let cube = [| a <! (Int 4)*x ; (Int 6)*x <== b |]
-    let f = MbpZ model x (Cube cube)
-    Assert.AreEqual(3, f.conjuncts.Length)
-    Assert.Contains(Le (Var "a",Int 85), f.conjuncts)
-    Assert.Contains(Le (Var "b",Int 127), f.conjuncts)
-    Assert.Contains(Lt (Div (Mult (Var "a",Int 3),12),Div (Mult (Var "a",Int 3),12)), f.conjuncts)
+    let ctx = new Context();
+    
+    let cube = [| a <! 4*x ; 6*x <== b |] // a < 4x ∧ 6x < b
+    let mbp = MbpZ model x (Cube cube)
+    Assert.False(mbp.as_formula.contains x)
+    
+    Assert.AreEqual(3, mbp.conjuncts.Length)
+    Assert.Contains(Le (Var "a",Int 85), mbp.conjuncts)
+    Assert.Contains(Le (Var "b",Int 127), mbp.conjuncts)
+    Assert.Contains(Lt (Div (Mult (Var "a",Int 3),12),Div (Mult (Var "a",Int 3),12)), mbp.conjuncts)
     // todo: not rely on order of arguments in commuting operations
-    printfn "%A" f.conjuncts
+    printfn "%A" mbp.conjuncts
+    
+    // check that MBP⇒∃x.f
+    let expected = Implies(And(mbp.conjuncts), Exists(x, And cube))
+    let solver = ctx.MkSolver()
+    solver.Add(Not(expected).z3 ctx)
+    Assert.AreEqual(solver.Check(), Status.UNSATISFIABLE)
+    
+[<Test>]
+let TestMbpKeepsFreeConjunct () =
+    let x, a, b = Var "x", Var "a", Var "b"
+    
+    let model = Map.empty<string, int>.
+                        Add("a", 0).
+                        Add("b", 200).
+                        Add("x", 1)
+    let f = x
+    let free_conjunct = 100*a <== b
+    
+    let cube = Cube ([| Div (f, 3) <== b; free_conjunct |])
+    
+    let rew = MbpZ model x cube
+    
+    Assert.Contains(free_conjunct, rew.conjuncts)
+    

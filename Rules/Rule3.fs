@@ -30,7 +30,5 @@ let apply_rule3 M x (cube: Cube) (inequality, conjunct)=
             | Upper_ (f, b, d) -> [| f <== (d + Term.One) * (Int b) - Term.One ; d <== Div(Term.Max, b) |]
             | Lower_ (f, y, g) -> [| (g + Term.One) * (Int y) - Term.One <! f ; g <== Div(Term.Max, y) |]
 
-    [ (Array.except [ conjunct ] cube.conjuncts) ; rew ]
-        |> Array.concat
-        |> Cube
+    rew |> Cube
         

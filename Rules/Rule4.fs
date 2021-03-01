@@ -36,6 +36,5 @@ let apply_rule4 M x (cube: Cube) (inequality, conjunct)=
             | Lower_(f, b, a, d) -> condition_lower f b a d
 
     [ (Array.except [ conjunct ] cube.conjuncts) ; rew ]
-        |> Array.concat
-        |> Cube
+        |> Array.concat |> Cube
         
