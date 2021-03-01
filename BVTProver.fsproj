@@ -9,7 +9,6 @@
         <Compile Include="MathHelpers.fs" />
         <Compile Include="Formula.fs" />
         <Compile Include="Bvt.fs" />
-        <Compile Include="BvtElimination.fs" />
         <Folder Include="Tests" />
         <Compile Include="Rules\Rule1.fs" />
         <Compile Include="Rules\Rule2.fs" />

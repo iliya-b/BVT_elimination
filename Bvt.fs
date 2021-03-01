@@ -49,8 +49,8 @@ type BVT(ctx: Context, n: uint32, nn: int) =
             | Le(y, Inv(t))
             | Ge(Inv(t), y) when var_check2 t t y ->
                 [ [t <== _0-y] ] // inv
-            | Le(Mult(Int k1, ((Var _) as x)), Mult(Int k2, ((Var _) as _x))) when x=var && _x=var
-             -> [ [var <== Int ((pown 2 nn) * k1 / k2) ] ] // bothx4
+            | Le(Mult(Int k1, ThisVar var), Mult(Int k2, ThisVar var)) ->
+                [ [var <== Int ((pown 2 nn) * k1 / k2) ] ] // bothx4
             | _ -> []
      
 
@@ -67,10 +67,14 @@ type BVT(ctx: Context, n: uint32, nn: int) =
         // todo: assert model |= cube
         match cube with
             | cube when not (cube.contains var) -> [cube]
-            | (Le(_, Mult(Int _, ThisVar var)) | Ge(Mult(Int _, ThisVar var), _)) 
-            | (Le(_, ThisVar var) | Ge(ThisVar var, _))
-            | (Le(Mult(Int _, ThisVar var), _) | Ge(_, Mult(Int _, ThisVar var))) 
-            | (Le(ThisVar var, _) | Ge(_, ThisVar var)) -> [cube]
+            | Le(_, Mult(Int _, ThisVar var))
+            | Ge(Mult(Int _, ThisVar var), _)
+            | Le(_, ThisVar var)
+            | Ge(ThisVar var, _)
+            | Le(Mult(Int _, ThisVar var), _)
+            | Ge(_, Mult(Int _, ThisVar var)) 
+            | Le(ThisVar var, _)
+            | Ge(_, ThisVar var) -> [cube]
             | cube -> let applicable_rules = this.getRules cube var
                       let p = List.tryPick premises_hold applicable_rules
                       match p with

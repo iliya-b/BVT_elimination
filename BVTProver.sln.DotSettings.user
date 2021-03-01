@@ -5,6 +5,7 @@
     &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.Mbp.TestMbpKeepsFreeConjunct&lt;/TestId&gt;
     &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.Rules.TestRule3&lt;/TestId&gt;
     &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.Mbp.TestNormalizationImpliesFormulaAndSatisfiedByItsModel&lt;/TestId&gt;
+    &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.Mbp&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
 	<s:Boolean x:Key="/Default/UserDictionary/Words/=coeffs/@EntryIndexedValue">True</s:Boolean>

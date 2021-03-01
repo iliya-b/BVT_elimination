@@ -7,7 +7,6 @@ open NUnit.Framework
 open Microsoft.Z3
 open BVTProver.Bvt
 open BVTProver.Formula
-open BvtElimination
 open Mbp
 
 [<SetUp>]
