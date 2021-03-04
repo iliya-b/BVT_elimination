@@ -7,6 +7,7 @@ open NUnit.Framework
 open Microsoft.Z3
 open BVTProver.Bvt
 open BVTProver.Formula
+open BVTProver.FormulaActions
 open RewriteRules.Rule2
 open RewriteRules.Rule3
 open RewriteRules.Rule3

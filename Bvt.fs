@@ -1,18 +1,15 @@
 module BVTProver.Bvt
-open System
-open Microsoft.Z3
-open Microsoft.Z3
+
 open Formula
-
-type BVT(ctx: Context, n: uint32, nn: int) =
+open FormulaActions
         
-    member this.getRules conclusion (var: Term) =
+let private getRules conclusion (var: Term) =
 
-        let _0 = Int 0
-        let _1 = Int 1
-
-        let var_check (t: Term) (y: Term) (z: Term) = t.contains var && not (y.contains var) && not (z.contains var)
-        let var_check2 (t1: Term) (t2: Term) (y: Term)  = t1.contains var && t2.contains var && not (y.contains var)
+        let _0 = Term.Zero
+        let _1 = Term.One
+        let contains_var = term_contains var
+        let var_check (t: Term) (y: Term) (z: Term) = contains_var t && not (contains_var y) && not (contains_var z)
+        let var_check2 (t1: Term) (t2: Term) (y: Term)  = contains_var t1 && contains_var t2 && not (contains_var y)
         // t(x) - a terms containing x, y/z - x-free terms, a/b - any term
         match conclusion with
             | Le(Plus(t, y), z)
@@ -50,23 +47,24 @@ type BVT(ctx: Context, n: uint32, nn: int) =
             | Ge(Inv(t), y) when var_check2 t t y ->
                 [ [t <== _0-y] ] // inv
             | Le(Mult(Int k1, ThisVar var), Mult(Int k2, ThisVar var)) ->
-                [ [var <== Int ((pown 2 nn) * k1 / k2) ] ] // bothx4
+                [ [var <== Int ((Term.MaxNumber+1) * k1 / k2) ] ] // bothx4
             | _ -> []
      
 
-    member this.Rewrite (cube: Formula) (var: Term) model i: Formula list = // normalization procedure
+let rec Rewrite (cube: Formula) (var: Term) model i: Formula list = // normalization procedure
                
         let premises_hold premises =
-          let f = List.collect (fun p -> this.Rewrite p var model (i+1)) premises
+          let f = List.collect (fun p -> Rewrite p var model (i+1)) premises
           if model |= And(Array.ofList f) then                                      
               Some f
           else
               None
+ 
                     
         // todo: assert cube is cube
         // todo: assert model |= cube
         match cube with
-            | cube when not (cube.contains var) -> [cube]
+            | cube when not (formula_contains var cube) -> [cube]
             | Le(_, Mult(Int _, ThisVar var))
             | Ge(Mult(Int _, ThisVar var), _)
             | Le(_, ThisVar var)
@@ -75,7 +73,7 @@ type BVT(ctx: Context, n: uint32, nn: int) =
             | Ge(_, Mult(Int _, ThisVar var)) 
             | Le(ThisVar var, _)
             | Ge(_, ThisVar var) -> [cube]
-            | cube -> let applicable_rules = this.getRules cube var
+            | cube -> let applicable_rules = getRules cube var
                       let p = List.tryPick premises_hold applicable_rules
                       match p with
                        | Some conjuncts -> conjuncts

@@ -2,6 +2,7 @@ module BVTProver.RewriteRules.Rule3
 
 open BVTProver
 open Formula
+open FormulaActions
 
 
 type BoundingInequalityRule3 =

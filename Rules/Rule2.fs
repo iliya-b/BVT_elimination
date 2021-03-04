@@ -2,6 +2,7 @@ module BVTProver.RewriteRules.Rule2
 open BVTProver
 open Formula
 open MathHelpers
+open FormulaActions
 
 
 type BoundingInequality =
@@ -28,12 +29,13 @@ let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
         let LCM = tuples |> (Array.map fst)
                   |> Array.toList
                   |> lcmlist
-        let side_condition num t = t <== Int((n-1)/(LCM/num))
+        let side_condition num t = t <== Int((Term.MaxNumber-1)/(LCM/num))
     
         let var_value = M.Item(match x with | Var s -> s)
         // side conditions
-        let lcm_overflows = LCM >= n
-        let lcm_multiplied_overflows = var_value * LCM >= n
+        let lcm_overflows = LCM >= Term.MaxNumber
+        
+        let lcm_multiplied_overflows = var_value * LCM >= Term.MaxNumber
         let model_satisfies = Array.forall (fun (n, t) -> M |= (side_condition n t) ) tuples 
 
         if not lcm_overflows
@@ -47,7 +49,7 @@ let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
 
 let apply_rule2 M x (cube: Cube) (lcm, bounds) =
     let upper_bounds, lower_bounds = Array.partition BoundingInequality.is_upper bounds
-    let interpreted = function | Upper (num, t) | Lower (num, t) -> (t.interpret M) * (lcm / num)
+    let interpreted = function | Upper (num, t) | Lower (num, t) -> (interpret_term M t) * (lcm / num)
  
     
     let sup = upper_bounds |> Array.minBy interpreted |> BoundingInequality.tuplify
@@ -59,7 +61,7 @@ let apply_rule2 M x (cube: Cube) (lcm, bounds) =
     let term_L = snd inf
     let term_U = snd sup
     
-    let side_constraint c t = t <== (Int((n - 1) / (lcm / c)))
+    let side_constraint c t = t <== (Int((Term.MaxNumber - 1) / (lcm / c)))
     let mk_constraints_on_bounds = function | Lower (num, t) | Upper (num, t) -> side_constraint num t
     
     let make_conjunct2 conjunct =

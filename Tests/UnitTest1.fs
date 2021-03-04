@@ -8,6 +8,7 @@ open Microsoft.Z3
 open BVTProver.Bvt
 open BVTProver.Formula
 open Mbp
+open FormulaActions
 
 [<SetUp>]
 let Setup () =
@@ -23,9 +24,7 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
     let y = Var "y"
     let c = Var "c"
     let z = Var "z"
-    
-    let bvt = BVT(ctx, n, 8)
-                        
+                            
     let f = c - x + y <== z
     
 
@@ -35,14 +34,14 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
                     Add("z", 80).
                     Add("c", 84)
                     
-    let rewritten = And(Array.ofList (bvt.Rewrite f x model 0))
+    let rewritten = And(Array.ofList (Rewrite f x model 0))
     
     
     printfn "%O" f
     printfn "%O" rewritten
     
     let s = ctx.MkSolver()
-    let zf = Not(rewritten => f).z3 ctx
+    let zf = z3fy_formula ctx (Not (rewritten => f))
     s.Add(zf)
 
     Assert.True(model |= f)
@@ -65,7 +64,7 @@ let TestMbpInterpolatesTheFormula () =
     
     let cube = [| a <! 4*x ; 6*x <== b |] // a < 4x ∧ 6x < b
     let mbp = MbpZ model x (Cube cube)
-    Assert.False(mbp.as_formula.contains x)
+    Assert.False(formula_contains x mbp.as_formula)
     
     Assert.AreEqual(3, mbp.conjuncts.Length)
     Assert.Contains(Le (Var "a",Int 85), mbp.conjuncts)
@@ -77,7 +76,7 @@ let TestMbpInterpolatesTheFormula () =
     // check that MBP⇒∃x.f
     let expected = Implies(And(mbp.conjuncts), Exists(x, And cube))
     let solver = ctx.MkSolver()
-    solver.Add(Not(expected).z3 ctx)
+    solver.Add(z3fy_formula ctx (Not(expected)))
     Assert.AreEqual(solver.Check(), Status.UNSATISFIABLE)
     
 [<Test>]
