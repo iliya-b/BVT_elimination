@@ -1,7 +1,6 @@
 module BVTProver.Formula
 open System
-let private n = 256
-let private n2 = 8u
+
 
 let (%%) a b = // python-like mod
     let c = a % b
@@ -29,8 +28,8 @@ type Term =
             | _ -> failwith "unknown term"
     
 type Formula =
-    | And of Formula[]
-    | Or of Formula[]
+    | And of Formula list
+    | Or of Formula list
     | Iff of Formula*Formula
     | Implies of Formula*Formula
     | Not of Formula
@@ -44,7 +43,7 @@ type Formula =
     | False
     
     override this.ToString() =
-        let join args = String.Join(',', (Array.map string args))
+        let join args = String.Join(',', (List.map string args))
         match this with 
             | And args -> sprintf "And(%s)" (join args)
             | Or args -> sprintf "Or(%s)" (join args)
@@ -69,9 +68,9 @@ type Formula =
 type Term with
     static member Zero = Int 0 
     static member One = Int 1 
-    static member Max = Int (n-1) 
-    static member MaxNumber = n-1
-    static member Bits = uint32 n
+    static member Max = Int 255
+    static member MaxNumber = 255
+    static member Bits = 8u
     member private this.SmartInv =
         match this with
             | Inv t -> t

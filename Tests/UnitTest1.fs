@@ -34,7 +34,7 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
                     Add("z", 80).
                     Add("c", 84)
                     
-    let rewritten = And(Array.ofList (Rewrite f x model 0))
+    let rewritten = And(Rewrite f x model 0)
     
     
     printfn "%O" f
@@ -62,14 +62,14 @@ let TestMbpInterpolatesTheFormula () =
     
     let ctx = new Context();
     
-    let cube = [| a <! 4*x ; 6*x <== b |] // a < 4x ∧ 6x < b
+    let cube = [ a <! 4*x ; 6*x <== b ] // a < 4x ∧ 6x < b
     let mbp = MbpZ model x (Cube cube)
     Assert.False(formula_contains x mbp.as_formula)
     
     Assert.AreEqual(3, mbp.conjuncts.Length)
-    Assert.Contains(Le (Var "a",Int 85), mbp.conjuncts)
-    Assert.Contains(Le (Var "b",Int 127), mbp.conjuncts)
-    Assert.Contains(Lt (Div (Mult (Var "a",Int 3),12),Div (Mult (Var "a",Int 3),12)), mbp.conjuncts)
+    Assert.True(List.contains (Le (Var "a",Int 85)) mbp.conjuncts)
+    Assert.True(List.contains (Le (Var "b",Int 127)) mbp.conjuncts)
+    Assert.True(List.contains (Lt (Div (Mult (Var "a",Int 3),12),Div (Mult (Var "a",Int 3),12))) mbp.conjuncts)
     // todo: not rely on order of arguments in commuting operations
     printfn "%A" mbp.conjuncts
     
@@ -90,9 +90,9 @@ let TestMbpKeepsFreeConjunct () =
     let f = x
     let free_conjunct = 100*a <== b
     
-    let cube = Cube ([| Div (f, 3) <== b; free_conjunct |])
+    let cube = Cube ([ Div (f, 3) <== b; free_conjunct ])
     
     let rew = MbpZ model x cube
     
-    Assert.Contains(free_conjunct, rew.conjuncts)
+    Assert.True(List.contains free_conjunct rew.conjuncts)
     

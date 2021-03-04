@@ -24,11 +24,9 @@ let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
     
     // todo: lazy computation
     if cube.each_matches (|Bounds|_|) then
-        let bounds = Array.choose (|Bounds|_|) cube.conjuncts
-        let tuples = Array.map BoundingInequality.tuplify bounds
-        let LCM = tuples |> (Array.map fst)
-                  |> Array.toList
-                  |> lcmlist
+        let bounds = List.choose (|Bounds|_|) cube.conjuncts
+        let tuples = List.map BoundingInequality.tuplify bounds
+        let LCM = tuples |> (List.map fst) |> lcmlist
         let side_condition num t = t <== Int((Term.MaxNumber)/(LCM/num))
     
         let var_value = M.Item(match x with | Var s -> s)
@@ -36,7 +34,7 @@ let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
         let lcm_overflows = LCM >= Term.MaxNumber
         
         let lcm_multiplied_overflows = var_value * LCM > Term.MaxNumber
-        let model_satisfies = Array.forall (fun (n, t) -> M |= (side_condition n t) ) tuples 
+        let model_satisfies = List.forall (fun (n, t) -> M |= (side_condition n t) ) tuples 
 
         if not lcm_overflows
            && not lcm_multiplied_overflows
@@ -48,12 +46,12 @@ let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
         None
 
 let apply_rule2 M x (cube: Cube) (lcm, bounds) =
-    let upper_bounds, lower_bounds = Array.partition BoundingInequality.is_upper bounds
+    let upper_bounds, lower_bounds = List.partition BoundingInequality.is_upper bounds
     let interpreted = function | Upper (num, t) | Lower (num, t) -> (interpret_term M t) * (lcm / num)
  
     
-    let sup = upper_bounds |> Array.minBy interpreted |> BoundingInequality.tuplify
-    let inf = lower_bounds |> Array.maxBy interpreted |> BoundingInequality.tuplify
+    let sup = upper_bounds |> List.minBy interpreted |> BoundingInequality.tuplify
+    let inf = lower_bounds |> List.maxBy interpreted |> BoundingInequality.tuplify
     
 
     let coefficient_L = fst inf
@@ -72,12 +70,12 @@ let apply_rule2 M x (cube: Cube) (lcm, bounds) =
                         Some((term_U * (Int(lcm / coefficient_U)) <== t * (Int(lcm / num))))
             | _ -> None
 
-    let c1 = lower_bounds |> Array.map mk_constraints_on_bounds
-    let c2 = upper_bounds |> Array.map mk_constraints_on_bounds
+    let c1 = lower_bounds |> List.map mk_constraints_on_bounds
+    let c2 = upper_bounds |> List.map mk_constraints_on_bounds
 
     let c3 = cube.conjuncts
-                |> (Array.choose ((|Bounds|_|) x))
-                |> (Array.choose make_conjunct2)
+                |> (List.choose ((|Bounds|_|) x))
+                |> (List.choose make_conjunct2)
 
-    let c4 = [| Div(term_L * (Int(lcm / coefficient_L)), lcm) <! Div(term_L * (Int(lcm / coefficient_L)), lcm) |]
-    [ c1; c2; c3; c4 ] |> Array.concat |> Cube
+    let c4 = Div(term_L * (Int(lcm / coefficient_L)), lcm) <! Div(term_L * (Int(lcm / coefficient_L)), lcm)
+    c4 :: (c1 @ c2 @ c3)  |> Cube

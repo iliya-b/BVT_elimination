@@ -14,8 +14,8 @@ let (|ConstDivision|_|) x (expr: Term): (Term * int) option =
     | Div (Contains x t, d) -> Some(t, d)
     | _ -> None
 
-let private condition_upper f a (b: int) (d: Term) = [|f*(Int a) <== (d + (Int 1))*(Int b) - (Int 1)  ; d <! Div(Term.Max, b) |]
-let private condition_lower f b (y: int) (g: Term) = [| (g + (Int 1))*(Int y) - (Int 1) <! f*(Int b) ; g <! Div(Term.Max, y) |]
+let private condition_upper f a (b: int) (d: Term) = [ f*(Int a) <== (d + (Int 1))*(Int b) - (Int 1)  ; d <! Div(Term.Max, b) ]
+let private condition_lower f b (y: int) (g: Term) = [ (g + (Int 1))*(Int y) - (Int 1) <! f*(Int b) ; g <! Div(Term.Max, y) ]
 
 let (|BoundWithDivision|_|) (M: Map<string, int>) x (conjunct: Formula) =
     match conjunct with
@@ -36,6 +36,5 @@ let apply_rule4 M x (cube: Cube) (inequality, conjunct)=
             | Upper_(f, b, a, d) -> condition_upper f b a d
             | Lower_(f, b, a, d) -> condition_lower f b a d
 
-    [ (Array.except [ conjunct ] cube.conjuncts) ; rew ]
-        |> Array.concat |> Cube
+    (List.except [ conjunct ] cube.conjuncts) @ rew |> Cube
         

@@ -39,8 +39,8 @@ let rec substitute_formula (M: Map<Term, Term>) formula: Formula =
          let substitute_formula = substitute_formula M
          let substitute_term = substitute_term M
          match formula with 
-            | And args -> And(Array.map substitute_formula args) 
-            | Or args -> Or(Array.map substitute_formula args) 
+            | And args -> args |> (List.map substitute_formula) |> And
+            | Or args -> args |> (List.map substitute_formula) |> Or
             | Equals (t1, t2) -> Equals(substitute_term t1, substitute_term t2) 
             | Le (t1, t2) ->  Le(substitute_term t1, substitute_term t2) 
             | Lt (t1, t2) ->  Lt(substitute_term t1, substitute_term t2) 
@@ -72,7 +72,7 @@ let rec formula_contains (var: Term) expr =
     let term_contains = term_contains var
     match expr with
     | And args
-    | Or args -> Array.exists (fun (f: Formula) -> contains f) args
+    | Or args -> List.exists (fun (f: Formula) -> contains f) args
     | Equals (t1, t2)
     | Le (t1, t2)
     | Lt (t1, t2)
@@ -100,8 +100,7 @@ let rec z3fy_formula (ctx: Context) formula: BoolExpr =
     let z3fy_formula = z3fy_formula ctx
     let z3fy_term = z3fy_term ctx
 
-    let map_z3 args =
-        Array.map (fun (f: Formula) -> z3fy_formula f) args
+    let map_z3 args = args |> (List.map z3fy_formula) |> Array.ofList
 
     match formula with
     | And args -> ctx.MkAnd(map_z3 args)
@@ -131,8 +130,8 @@ let rec formula_from_z3 (expr: Expr) =
             | ZEquals (t1, t2) -> Equals(term_from_z3 t1, term_from_z3 t2)
             | ZLe (t1, t2) -> Le(term_from_z3 t1, term_from_z3 t2)
             | ZLt (t1, t2) -> Lt(term_from_z3 t1, term_from_z3 t2)
-            | ZCONJ args ->  And(Array.map formula_from_z3 args)
-            | ZDISJ args ->  Or(Array.map formula_from_z3 args)
+            | ZCONJ args -> args |> (Array.map formula_from_z3) |> List.ofArray |> And
+            | ZDISJ args ->  args |> (Array.map formula_from_z3) |> List.ofArray |> Or
             | ZNot t -> Not (formula_from_z3 t)
             | ZImplies (a, b) -> Implies (formula_from_z3 a, formula_from_z3 b)
             | ZExists (var, f) -> Exists (Var (var.ToString()), formula_from_z3 f)
@@ -141,8 +140,8 @@ let rec formula_from_z3 (expr: Expr) =
 let rec (|=) (M: Map<string, int>) (F: Formula) =
          let interpret_term = interpret_term M
          match F with 
-            | And args -> Array.forall (fun f -> M |= f) args
-            | Or args -> Array.exists (fun f -> M |= f) args
+            | And args -> List.forall ((|=) M) args
+            | Or args -> List.exists ((|=) M) args
             | True -> true
             | False -> false
             | Equals (t1, t2) -> interpret_term t1 = interpret_term t2
@@ -169,25 +168,25 @@ let (|ThisVar|_|) x (e: Term) =
     | _ -> None
 
 
-type Cube (expressions: Formula[]) = // conjunction of literals, without ORs inside
+type Cube (expressions: Formula list) = // conjunction of literals, without ORs inside
     member this.conjuncts = expressions
     member this.as_formula = And(this.conjuncts)
     
     member this.some_matches (|Pattern|_|) =
-        Array.tryFind (fun e -> match e with | Pattern _ -> true | _ -> false) expressions
+        List.tryFind (fun e -> match e with | Pattern _ -> true | _ -> false) expressions
     member this.each_matches (|Pattern|_|) =
-         Array.forall (fun e -> match e with | Pattern _ -> true | _ -> false) expressions
+         List.forall (fun e -> match e with | Pattern _ -> true | _ -> false) expressions
 
     member this.split (x) =
         let is_free (e: Formula) = not (formula_contains x e)
-        let a, b = Array.partition is_free expressions
+        let a, b = List.partition is_free expressions
         Cube a, Cube b
     member this.remove (conjunct) =
-        Cube(Array.except [conjunct] this.conjuncts)
-    member this.apply_model (M: Map<string, int>) = Array.forall ((|=) M) expressions
+        Cube(List.except [conjunct] this.conjuncts)
+    member this.apply_model (M: Map<string, int>) = List.forall ((|=) M) expressions
          
     static member (+) (a: Cube, b: Cube) =
-        [ a.conjuncts ; b.conjuncts ] |> Array.concat |> Cube
+        a.conjuncts @ b.conjuncts  |> Cube
 
 let (|+) (|Pattern1|_|) (|Pattern2|_|) =
     let (|UnionPattern|_|) e =

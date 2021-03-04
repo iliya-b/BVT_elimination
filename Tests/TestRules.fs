@@ -25,7 +25,7 @@ let TestRule2ByPassedWhenLcmOverflows =
                         Add("a", 0).
                         Add("b", 200).
                         Add("x", 1)
-    let cube = Cube ([| a <! 99*x ; 100*x <== b |])
+    let cube = Cube ([ a <! 99*x ; 100*x <== b ])
     match cube with
        | Rule2 model x (lcm, bounds) -> Assert.Fail()
        | t -> ignore t
@@ -42,7 +42,7 @@ let TestRule3 () =
     let f = x
     let free_conjunct = 100*a <== b
     let upper_bound = Div (f, 3) <== b
-    let cube = Cube ([| upper_bound; free_conjunct |])
+    let cube = Cube ([ upper_bound; free_conjunct ])
     
     match cube with
     | Rule3 model x (Upper_(t1, num, t2), conjunct) ->

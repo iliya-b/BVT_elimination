@@ -27,7 +27,7 @@ let rec MbpZ (M: Map<string, int>) (x: Term) (cube: Cube) =
             | Rule2 M x (lcm, bounds) -> apply_rule2 M x residual (lcm, bounds)
             | Rule3 M x (T, conjunct) -> (apply_rule3 M x residual (T, conjunct)) + (MbpZ M x (residual.remove conjunct)) 
             | Rule4 M x (T, conjunct) -> (apply_rule4 M x residual (T, conjunct)) + (MbpZ M x (residual.remove conjunct))
-            | cube -> Cube (Array.map (substitute_formula x_mapping) cube.conjuncts)
+            | cube -> Cube (List.map (substitute_formula x_mapping) cube.conjuncts)
 
         open_conjuncts + residual
 

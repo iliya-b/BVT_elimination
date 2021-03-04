@@ -55,7 +55,7 @@ let rec Rewrite (cube: Formula) (var: Term) model i: Formula list = // normaliza
                
         let premises_hold premises =
           let f = List.collect (fun p -> Rewrite p var model (i+1)) premises
-          if model |= And(Array.ofList f) then                                      
+          if model |= And f then                                      
               Some f
           else
               None

@@ -28,8 +28,8 @@ let (|Rule3|_|) (M: Map<string, int>) x (cube: Cube) =
 let apply_rule3 M x (cube: Cube) (inequality, conjunct)=
     let rew =
         match inequality with
-            | Upper_ (f, b, d) -> [| f <== (d + Term.One) * (Int b) - Term.One ; d <== Div(Term.Max, b) |]
-            | Lower_ (f, y, g) -> [| (g + Term.One) * (Int y) - Term.One <! f ; g <== Div(Term.Max, y) |]
+            | Upper_ (f, b, d) -> [ f <== (d + Term.One) * (Int b) - Term.One ; d <== Div(Term.Max, b) ]
+            | Lower_ (f, y, g) -> [ (g + Term.One) * (Int y) - Term.One <! f ; g <== Div(Term.Max, y) ]
 
     rew |> Cube
         
