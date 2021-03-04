@@ -5,14 +5,14 @@ open MathHelpers
 open FormulaActions
 
 
-type BoundingInequality =
+type private BoundingInequality =
     | Upper of int*Term
     | Lower of int*Term
     static member tuplify = function Upper (a, b) | Lower (a, b) -> (a, b)
     static member is_upper = function Upper _ -> true | _ -> false
        
 type RuleType = All | Any
-let (|Bounds|_|) x (conjunct: Formula) = 
+let private (|Bounds|_|) x (conjunct: Formula) = 
     
     match conjunct with
         | AsLe (AsMult (ThisVar x, Int d | Int d, ThisVar x), FreeOf x t) -> Some (Upper(d, t)) // β×x ≤ b
@@ -21,31 +21,40 @@ let (|Bounds|_|) x (conjunct: Formula) =
 
 let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
     let (|Bounds|_|) = (|Bounds|_|) x
+    let var_name =
+        match x with
+         | Var s -> s
+         | _ -> failwith "x must be a var"
     
     // todo: lazy computation
     if cube.each_matches (|Bounds|_|) then
-        let bounds = List.choose (|Bounds|_|) cube.conjuncts
-        let tuples = List.map BoundingInequality.tuplify bounds
-        let LCM = tuples |> (List.map fst) |> lcmlist
+        let bounds = cube.conjuncts |>
+                     (List.choose (|Bounds|_|)) |>
+                     (List.map BoundingInequality.tuplify)
+                     
+        let LCM = bounds |> (List.map fst) |> lcmlist
         let side_condition num t = t <== Int((Term.MaxNumber)/(LCM/num))
     
-        let var_value = M.Item(match x with | Var s -> s)
+        let var_value = Map.find var_name M
         // side conditions
-        let lcm_overflows = LCM >= Term.MaxNumber
+        let lcm_overflows = LCM > Term.MaxNumber
         
         let lcm_multiplied_overflows = var_value * LCM > Term.MaxNumber
-        let model_satisfies = List.forall (fun (n, t) -> M |= (side_condition n t) ) tuples 
+        let model_satisfies = List.forall (fun (n, t) -> M |= (side_condition n t) ) bounds 
 
         if not lcm_overflows
            && not lcm_multiplied_overflows
            && model_satisfies then
-            Some(LCM, bounds)
+            Some(cube)
         else
             None
     else
         None
 
-let apply_rule2 M x (cube: Cube) (lcm, bounds) =
+let apply_rule2 M x (cube: Cube) =
+    let bounds = cube.conjuncts |> (List.choose ((|Bounds|_|) x))
+    let lcm = bounds |> (List.map (BoundingInequality.tuplify >> fst)) |> lcmlist
+
     let upper_bounds, lower_bounds = List.partition BoundingInequality.is_upper bounds
     let interpreted = function | Upper (num, t) | Lower (num, t) -> (interpret_term M t) * (lcm / num)
  
@@ -53,11 +62,8 @@ let apply_rule2 M x (cube: Cube) (lcm, bounds) =
     let sup = upper_bounds |> List.minBy interpreted |> BoundingInequality.tuplify
     let inf = lower_bounds |> List.maxBy interpreted |> BoundingInequality.tuplify
     
-
-    let coefficient_L = fst inf
-    let coefficient_U = fst sup
-    let term_L = snd inf
-    let term_U = snd sup
+    let coefficient_L, term_L = inf
+    let coefficient_U, term_U = sup
     
     let side_constraint c t = t <== (Int(Term.MaxNumber / (lcm / c)))
     let mk_constraints_on_bounds = function | Lower (num, t) | Upper (num, t) -> side_constraint num t

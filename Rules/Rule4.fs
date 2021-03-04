@@ -14,8 +14,8 @@ let (|ConstDivision|_|) x (expr: Term): (Term * int) option =
     | Div (Contains x t, d) -> Some(t, d)
     | _ -> None
 
-let private condition_upper f a (b: int) (d: Term) = [ f*(Int a) <== (d + (Int 1))*(Int b) - (Int 1)  ; d <! Div(Term.Max, b) ]
-let private condition_lower f b (y: int) (g: Term) = [ (g + (Int 1))*(Int y) - (Int 1) <! f*(Int b) ; g <! Div(Term.Max, y) ]
+let private condition_upper f a (b: int) (d: Term) = [ f*(Int a) <== (d + Term.One)*(Int b) - Term.One  ; d <! Div(Term.Max, b) ]
+let private condition_lower f b (y: int) (g: Term) = [ (g + Term.One)*(Int y) - Term.One <! f*(Int b) ; g <! Div(Term.Max, y) ]
 
 let (|BoundWithDivision|_|) (M: Map<string, int>) x (conjunct: Formula) =
     match conjunct with
@@ -25,7 +25,7 @@ let (|BoundWithDivision|_|) (M: Map<string, int>) x (conjunct: Formula) =
         | ConstDivision x (f, y), Int b)) when M |= And(condition_lower f b y g) -> Some (Lower_(f, y, b, g))
         | _ -> None
 
-
+// typical rule: 
 let (|Rule4|_|) (M: Map<string, int>) x (cube: Cube) =
     match cube.some_matches  ((|BoundWithDivision|_|) M x) with
         | Some ((BoundWithDivision M x inequality) as conjunct)  -> Some (inequality, conjunct)
