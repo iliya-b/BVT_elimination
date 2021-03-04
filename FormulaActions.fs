@@ -22,7 +22,7 @@ let rec interpret_term (M: Map<string, int>) formula: int =
         | Inv t -> -(interpret_term t)
         | Int c -> c
 
-    d %% Term.MaxNumber
+    d %% (Term.MaxNumber+1)
 
 let rec substitute_term (M: Map<Term, Term>) term =
     let substitute_term = substitute_term M
