@@ -174,20 +174,6 @@ let (|ThisVar|_|) x (e: Term) =
     | _ -> None
 
 
-type Cube (expressions: Formula list) = // conjunction of literals, without ORs inside
-    member this.conjuncts = expressions
-    member this.as_formula = And(this.conjuncts)
-
-    member this.split (x) =
-        let is_free (e: Formula) = not (formula_contains x e)
-        let a, b = List.partition is_free expressions
-        Cube a, Cube b
-    member this.remove (conjunct) =
-        Cube(List.except [conjunct] this.conjuncts)
-         
-    static member (+) (a: Cube, b: Cube) =
-        a.conjuncts @ b.conjuncts  |> Cube
-
 let (|+) (|Pattern1|_|) (|Pattern2|_|) =
     let (|UnionPattern|_|) e =
         match e with
