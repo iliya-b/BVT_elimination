@@ -19,7 +19,7 @@ let private (|Bounds|_|) x (conjunct: Formula) =
         | AsLt (FreeOf x t, AsMult (ThisVar x, Int d | Int d, ThisVar x)) -> Some (Lower(d, t)) // a < α×x
         | _ -> None
 
-let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
+let (|Rule2|_|) (M: Map<string, int>) x (cube: Formula list) =
     let (|Bounds|_|) = (|Bounds|_|) x
     let var_name =
         match x with
@@ -27,8 +27,8 @@ let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
          | _ -> failwith "x must be a var"
     
     // todo: lazy computation
-    if cube.each_matches (|Bounds|_|) then
-        let bounds = cube.conjuncts |>
+    if each_matches (|Bounds|_|) cube then
+        let bounds = cube |>
                      (List.choose (|Bounds|_|)) |>
                      (List.map BoundingInequality.tuplify)
                      
@@ -51,8 +51,8 @@ let (|Rule2|_|) (M: Map<string, int>) x (cube: Cube) =
     else
         None
 
-let apply_rule2 M x (cube: Cube) =
-    let bounds = cube.conjuncts |> (List.choose ((|Bounds|_|) x))
+let apply_rule2 M x (cube: Formula list) =
+    let bounds = cube |> (List.choose ((|Bounds|_|) x))
     let lcm = bounds |> (List.map (BoundingInequality.tuplify >> fst)) |> lcmlist
 
     let upper_bounds, lower_bounds = List.partition BoundingInequality.is_upper bounds
@@ -79,9 +79,9 @@ let apply_rule2 M x (cube: Cube) =
     let c1 = lower_bounds |> List.map mk_constraints_on_bounds
     let c2 = upper_bounds |> List.map mk_constraints_on_bounds
 
-    let c3 = cube.conjuncts
+    let c3 = cube
                 |> (List.choose ((|Bounds|_|) x))
                 |> (List.choose make_conjunct2)
 
     let c4 = Div(term_L * (Int(lcm / coefficient_L)), lcm) <! Div(term_L * (Int(lcm / coefficient_L)), lcm)
-    c4 :: (c1 @ c2 @ c3)  |> Cube
+    c4 :: (c1 @ c2 @ c3)

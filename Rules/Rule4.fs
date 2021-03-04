@@ -25,8 +25,8 @@ let private (|BoundWithDivision|_|) (M: Map<string, int>) x (conjunct: Formula) 
         | ConstDivision x (f, y), Int b)) when M |= And(condition_lower f b y g) -> Some (Lower_(f, y, b, g))
         | _ -> None
 
-let (|Rule4|_|) (M: Map<string, int>) x (cube: Cube) =
-    match cube.some_matches  ((|BoundWithDivision|_|) M x) with
+let (|Rule4|_|) (M: Map<string, int>) x (cube: Formula list) =
+    match some_matches ((|BoundWithDivision|_|) M x) cube with
         | Some ((BoundWithDivision M x _) as conjunct)  -> Some conjunct
         | _ -> None
 let apply_rule4 M x conjunct =
@@ -39,5 +39,5 @@ let apply_rule4 M x conjunct =
             | Upper_(f, b, a, d) -> condition_upper f b a d
             | Lower_(f, b, a, d) -> condition_lower f b a d
 
-    rew |> Cube
+    rew
         

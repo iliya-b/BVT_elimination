@@ -21,8 +21,8 @@ let private (|BoundWithDivision|_|) (M: Map<string, int>) x (conjunct: Formula) 
         | _ -> None
 
 
-let (|Rule3|_|) (M: Map<string, int>) x (cube: Cube) =
-    match cube.some_matches  ((|BoundWithDivision|_|) M x) with
+let (|Rule3|_|) (M: Map<string, int>) x (cube: Formula list) =
+    match some_matches ((|BoundWithDivision|_|) M x) cube with
         | Some ((BoundWithDivision M x _) as conjunct)  -> Some conjunct
         | _ -> None
 let apply_rule3 M x conjunct =
@@ -35,5 +35,5 @@ let apply_rule3 M x conjunct =
             | Upper_ (f, b, d) -> [ f <== (d + Term.One) * (Int b) - Term.One ; d <== Div(Term.Max, b) ]
             | Lower_ (f, y, g) -> [ (g + Term.One) * (Int y) - Term.One <! f ; g <== Div(Term.Max, y) ]
 
-    rew |> Cube
+    rew
         

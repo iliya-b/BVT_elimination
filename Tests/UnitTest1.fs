@@ -18,8 +18,6 @@ let Setup () =
 [<Test>]
 let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
     let ctx = new Context()
-    
-    let n = 8u
     let x = Var "x"
     let y = Var "y"
     let c = Var "c"
@@ -63,20 +61,20 @@ let TestMbpInterpolatesTheFormula () =
     let ctx = new Context();
     
     let cube = [ a <! 4*x ; 6*x <== b ] // a < 4x ∧ 6x < b
-    let mbp = MbpZ model x (Cube cube)
-    Assert.False(formula_contains x mbp.as_formula)
+    let mbp = MbpZ model x cube
+    Assert.False(formula_contains x (And mbp))
     
-    Assert.AreEqual(3, mbp.conjuncts.Length)
-    Assert.True(List.contains (Le (Var "a",Int 85)) mbp.conjuncts)
-    Assert.True(List.contains (Le (Var "b",Int 127)) mbp.conjuncts)
-    Assert.True(List.contains (Lt (Div (Mult (Var "a",Int 3),12),Div (Mult (Var "a",Int 3),12))) mbp.conjuncts)
+    Assert.AreEqual(3, mbp.Length)
+    Assert.True(List.contains (Le (Var "a",Int 85)) mbp)
+    Assert.True(List.contains (Le (Var "b",Int 127)) mbp)
+    Assert.True(List.contains (Lt (Div (Mult (Var "a",Int 3),12),Div (Mult (Var "a",Int 3),12))) mbp)
     // todo: not rely on order of arguments in commuting operations
-    printfn "%A" mbp.conjuncts
+    printfn "%A" mbp
     
     // check that MBP⇒∃x.f
-    let expected = Implies(And(mbp.conjuncts), Exists(x, And cube))
+    let expected = Implies((And mbp), Exists(x, And cube))
     let solver = ctx.MkSolver()
-    solver.Add(z3fy_formula ctx (Not(expected)))
+    solver.Add(z3fy_formula ctx (Not expected))
     Assert.AreEqual(solver.Check(), Status.UNSATISFIABLE)
     
 [<Test>]
@@ -90,9 +88,9 @@ let TestMbpKeepsFreeConjunct () =
     let f = x
     let free_conjunct = 100*a <== b
     
-    let cube = Cube ([ Div (f, 3) <== b; free_conjunct ])
+    let cube = [ Div (f, 3) <== b; free_conjunct ]
     
     let rew = MbpZ model x cube
     
-    Assert.True(List.contains free_conjunct rew.conjuncts)
+    Assert.True(List.contains free_conjunct rew)
     

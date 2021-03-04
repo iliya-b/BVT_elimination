@@ -8,8 +8,8 @@ let private is_tautological x (conjunct: Formula) =
         | AsLe(AsMult(t1, ThisVar x | ThisVar x, t1), t2) -> true
         | _ -> false
                            
-let (|Rule1|_|) M x (cube: Cube) =
-    if List.forall (is_tautological x) cube.conjuncts then
+let (|Rule1|_|) M x (cube: Formula list) =
+    if List.forall (is_tautological x) cube then
         Some(cube)
     else
         None

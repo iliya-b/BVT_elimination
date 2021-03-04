@@ -8,7 +8,7 @@ open RewriteRules.Rule4
 open FormulaActions
 
 
-let rec MbpZ (M: Map<string, int>) (x: Term) (cube: Cube) =
+let rec MbpZ (M: Map<string, int>) (x: Term) (cube: Formula list) =
     let var_name =
         match x with
          | Var name -> name
@@ -16,20 +16,20 @@ let rec MbpZ (M: Map<string, int>) (x: Term) (cube: Cube) =
          
     let x_mapping = [x, Int (Map.find var_name M)] |> Map.ofList
     
-    let open_conjuncts, residual = cube.split x
+    let residual, open_conjuncts = List.partition (formula_contains x) cube
 
-    if residual.conjuncts.Length = 0 then
+    if List.length residual = 0 then
         open_conjuncts
     else
-        let residual =
+        let rewritten =
             match residual with
             | Rule1 M x _ -> residual
             | Rule2 M x all_conjuncts -> apply_rule2 M x all_conjuncts
-            | Rule3 M x conjunct -> (apply_rule3 M x conjunct) + (MbpZ M x (residual.remove conjunct)) 
-            | Rule4 M x conjunct -> (apply_rule4 M x conjunct) + (MbpZ M x (residual.remove conjunct))
-            | cube -> Cube (List.map (substitute_formula x_mapping) cube.conjuncts)
+            | Rule3 M x conjunct -> (apply_rule3 M x conjunct) @ (MbpZ M x (List.except [conjunct] residual)) 
+            | Rule4 M x conjunct -> (apply_rule4 M x conjunct) @ (MbpZ M x (List.except [conjunct] residual))
+            | cube -> List.map (substitute_formula x_mapping) cube
 
-        open_conjuncts + residual
+        open_conjuncts @ rewritten
 
 
 //let LazyMbp (f: Expr) var (M: Map<Expr, Expr>) =

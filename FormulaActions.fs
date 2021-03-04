@@ -162,6 +162,12 @@ let (|Contains|_|) x (e: Term) =
 let (|FreeOf|_|) x (e: Term) =
     if not (term_contains x e) then Some(e) else None
 
+
+let some_matches (|Pattern|_|) expressions =
+        List.tryFind (function | Pattern _ -> true | _ -> false) expressions
+let each_matches (|Pattern|_|) expressions =
+         List.forall (function | Pattern _ -> true | _ -> false) expressions
+        
 let (|ThisVar|_|) x (e: Term) =
     match e with
     | t when t = x -> Some()
@@ -171,11 +177,6 @@ let (|ThisVar|_|) x (e: Term) =
 type Cube (expressions: Formula list) = // conjunction of literals, without ORs inside
     member this.conjuncts = expressions
     member this.as_formula = And(this.conjuncts)
-    
-    member this.some_matches (|Pattern|_|) =
-        List.tryFind (fun e -> match e with | Pattern _ -> true | _ -> false) expressions
-    member this.each_matches (|Pattern|_|) =
-         List.forall (fun e -> match e with | Pattern _ -> true | _ -> false) expressions
 
     member this.split (x) =
         let is_free (e: Formula) = not (formula_contains x e)
@@ -183,7 +184,6 @@ type Cube (expressions: Formula list) = // conjunction of literals, without ORs 
         Cube a, Cube b
     member this.remove (conjunct) =
         Cube(List.except [conjunct] this.conjuncts)
-    member this.apply_model (M: Map<string, int>) = List.forall ((|=) M) expressions
          
     static member (+) (a: Cube, b: Cube) =
         a.conjuncts @ b.conjuncts  |> Cube

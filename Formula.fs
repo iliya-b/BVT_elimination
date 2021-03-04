@@ -20,10 +20,10 @@ type Term =
         match this with 
             | Var name -> sprintf "%s" name
             | Mult (t1, t2) -> sprintf "%O*%O" t1 t2
-            | Plus (t1, Inv t2) -> sprintf "%O-%O" t1 t2
-            | Plus (t1, t2) -> sprintf "%O+%O" t1 t2
+            | Plus (t1, Inv t2) -> sprintf "(%O-%O)" t1 t2
+            | Plus (t1, t2) -> sprintf "(%O+%O)" t1 t2
             | Inv t -> sprintf "-(%O)" t
-            | Div (t1, n) -> sprintf "%O div %d" t1 n
+            | Div (t1, n) -> sprintf "(%O div %d)" t1 n
             | Int n -> sprintf "%d" n
             | _ -> failwith "unknown term"
     
