@@ -1,10 +1,8 @@
 module Tests.Mbp
 
-open System
 open BVTProver
 open Microsoft.Z3
 open NUnit.Framework
-open Microsoft.Z3
 open BVTProver.Bvt
 open BVTProver.Formula
 open Mbp
