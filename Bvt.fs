@@ -51,10 +51,10 @@ let private getRules conclusion (var: Term) =
             | _ -> []
      
 
-let rec Rewrite (cube: Formula) (var: Term) model i: Formula list = // normalization procedure
+let rec Rewrite (var: Term) model (cube: Formula) : Formula list = // normalization procedure
                
-        let premises_hold premises =
-          let f = List.collect (fun p -> Rewrite p var model (i+1)) premises
+        let where_premises_hold premises =
+          let f = List.collect (Rewrite var model) premises
           if model |= And f then                                      
               Some f
           else
@@ -74,7 +74,7 @@ let rec Rewrite (cube: Formula) (var: Term) model i: Formula list = // normaliza
             | Le(ThisVar var, _)
             | Ge(_, ThisVar var) -> [cube]
             | cube -> let applicable_rules = getRules cube var
-                      let p = List.tryPick premises_hold applicable_rules
+                      let p = List.tryPick where_premises_hold applicable_rules
                       match p with
                        | Some conjuncts -> conjuncts
                        | None -> [False]

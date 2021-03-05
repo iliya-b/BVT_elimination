@@ -32,7 +32,7 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
                     Add("z", 80).
                     Add("c", 84)
                     
-    let rewritten = And(Rewrite f x model 0)
+    let rewritten = And(Rewrite x model f)
     
     
     printfn "%O" f

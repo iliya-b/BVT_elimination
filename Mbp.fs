@@ -6,7 +6,7 @@ open RewriteRules.Rule2
 open RewriteRules.Rule3
 open RewriteRules.Rule4
 open FormulaActions
-
+open Bvt
 
 let rec MbpZ (M: Map<string, int>) (x: Term) (cube: Formula list) =
     let var_name =
@@ -32,4 +32,16 @@ let rec MbpZ (M: Map<string, int>) (x: Term) (cube: Formula list) =
         open_conjuncts @ rewritten
 
 
-//let LazyMbp (f: Expr) var (M: Map<Expr, Expr>) =
+let LazyMbp (M: Map<string, int>) x (cube: Formula list)  =
+    let s, p = List.partition ((Rewrite x M)>>((<>) [False])) cube 
+    let mutable S = []
+    let mutable P = []
+    for f in cube do
+        let normal = Rewrite x M f
+        if normal=[False] then
+            S <- f::S
+        else
+            P <- normal::P
+    
+    
+//    let residual, open_conjuncts = List.partition (formula_contains x) cube
