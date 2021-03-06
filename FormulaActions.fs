@@ -18,22 +18,58 @@ let rec interpret_term (M: Map<string, int>) formula: int =
         | Var name -> Map.find name M
         | Mult (t1, t2) -> (interpret_term t1) * (interpret_term t2)
         | Plus (t1, t2) -> (interpret_term t1) + (interpret_term t2)
-        | Div (t1, Int d) -> (interpret_term t1) / d
+        | Div (t1, d) -> (interpret_term t1) / (interpret_term d)
         | Inv t -> -(interpret_term t)
         | Int c -> c
 
     d %% (Term.MaxNumber+1)
+let rec interpret_formula (M: Map<string, int>) formula: bool =
+    let interpret_formula = interpret_formula M
+    let interpret_term = interpret_term M
 
+    let d =
+        match formula with
+         | Iff (f1, f2) -> interpret_formula f1 && interpret_formula f2
+         | Implies (f1, f2) -> not (interpret_formula f1) || interpret_formula f2
+         | And args -> List.forall interpret_formula args
+         | Or args -> List.exists interpret_formula args
+         | Equals (a, b) -> interpret_term a = interpret_term b
+         | Le (a, b) -> interpret_term a <= interpret_term b
+         | Lt (a, b) -> interpret_term a < interpret_term b
+         | Ge _
+         | Gt _ -> failwith "use Le, Lt instead of Ge, Gt"
+         | True -> true
+         | False -> false 
 
-let rec is_LIA term =
+         | Exists _ -> failwith "try to interpret quantified formula"
+
+    d
+
+let rec is_LIA_term term =
     match term with
      | Int _
      | Var _ -> true
-     | Mult (a, Int _)
-     | Mult (Int _, a)  -> is_LIA a
-     | Plus (a, b)  -> (is_LIA a) && (is_LIA b)
-     | Inv a
-     | Div (a, _) -> is_LIA a
+     | Mult (a, Int _) // allow multiplication by a constant
+     | Mult (Int _, a)  -> is_LIA_term a
+     | Mult _ -> false
+     | Div (a, Int _) -> is_LIA_term a // allow division by a constant
+     | Div _ -> false
+     | Plus (a, b)  -> (is_LIA_term a) && (is_LIA_term b)
+     | Inv a -> is_LIA_term a
+let rec is_LIA_formula formula =
+    match formula with
+    | And args
+    | Or args -> List.forall is_LIA_formula args
+    | Equals (t1, t2)
+    | Le (t1, t2)
+    | Lt (t1, t2)
+    | Ge (t1, t2)
+    | Gt (t1, t2) -> is_LIA_term t1 && is_LIA_term t2
+    | Implies (t1, t2)
+    | Iff (t1, t2) -> is_LIA_formula t1 && is_LIA_formula t2
+    | Exists (_, t)
+    | Not t -> is_LIA_formula t
+    | _ -> false
      
 let rec substitute_term (M: Map<Term, Term>) term =
     let substitute_term = substitute_term M
@@ -83,7 +119,7 @@ let rec formula_contains (var: Term) expr =
     let term_contains = term_contains var
     match expr with
     | And args
-    | Or args -> List.exists (fun (f: Formula) -> contains f) args
+    | Or args -> List.exists contains args
     | Equals (t1, t2)
     | Le (t1, t2)
     | Lt (t1, t2)
