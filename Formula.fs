@@ -14,7 +14,7 @@ type Term =
     | Mult of Term*Term
     | Plus of Term*Term
     | Inv of Term
-    | Div of Term*int
+    | Div of Term*Term
 
     override this.ToString() =
         match this with 
@@ -23,7 +23,7 @@ type Term =
             | Plus (t1, Inv t2) -> sprintf "(%O-%O)" t1 t2
             | Plus (t1, t2) -> sprintf "(%O+%O)" t1 t2
             | Inv t -> sprintf "-(%O)" t
-            | Div (t1, n) -> sprintf "(%O div %d)" t1 n
+            | Div (t1, Int n) -> sprintf "(%O div %d)" t1 n
             | Int n -> sprintf "%d" n
             | _ -> failwith "unknown term"
     

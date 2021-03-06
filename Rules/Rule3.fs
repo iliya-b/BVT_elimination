@@ -11,13 +11,13 @@ type private BoundingInequalityRule3 =
 
 let private (|ConstDivision|_|) x (expr: Term): (Term * int) option =
     match expr with
-    | Div (Contains x t, d) -> Some(t, d)
+    | Div (Contains x t, Int d) -> Some(t, d)
     | _ -> None
 
 let private (|BoundWithDivision|_|) (M: Map<string, int>) x (conjunct: Formula) =
     match conjunct with
-        | Le (ConstDivision x (f, b), FreeOf x d) when M |= (d <== Div(Term.Max, b)) -> Some (Upper_(f, b, d))
-        | Lt (FreeOf x d, ConstDivision x (f, b)) when M |= (d <! Div(Term.Max, b)) -> Some (Lower_(f, b, d))
+        | Le (ConstDivision x (f, b), FreeOf x d) when M |= (d <== Div(Term.Max, Int b)) -> Some (Upper_(f, b, d))
+        | Lt (FreeOf x d, ConstDivision x (f, b)) when M |= (d <! Div(Term.Max, Int b)) -> Some (Lower_(f, b, d))
         | _ -> None
 
 
@@ -32,8 +32,8 @@ let apply_rule3 M x conjunct =
         | _ -> failwith "Rule3 requires conjunct of form: t(x) div d <= f ; f > t(x) div d "
     let rew =
         match inequality with
-            | Upper_ (f, b, d) -> [ f <== (d + Term.One) * (Int b) - Term.One ; d <== Div(Term.Max, b) ]
-            | Lower_ (f, y, g) -> [ (g + Term.One) * (Int y) - Term.One <! f ; g <== Div(Term.Max, y) ]
+            | Upper_ (f, b, d) -> [ f <== (d + Term.One) * (Int b) - Term.One ; d <== Div(Term.Max, Int b) ]
+            | Lower_ (f, y, g) -> [ (g + Term.One) * (Int y) - Term.One <! f ; g <== Div(Term.Max, Int y) ]
 
     rew
         

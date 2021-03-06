@@ -65,7 +65,7 @@ let TestMbpInterpolatesTheFormula () =
     Assert.AreEqual(3, mbp.Length)
     Assert.True(List.contains (Le (Var "a",Int 85)) mbp)
     Assert.True(List.contains (Le (Var "b",Int 127)) mbp)
-    Assert.True(List.contains (Lt (Div (Mult (Var "a",Int 3),12),Div (Mult (Var "a",Int 3),12))) mbp)
+    Assert.True(List.contains (Lt (Div (Mult (Var "a",Int 3), Int 12),Div (Mult (Var "a",Int 3), Int 12))) mbp)
     // todo: not rely on order of arguments in commuting operations
     printfn "%A" mbp
     
@@ -86,7 +86,7 @@ let TestMbpKeepsFreeConjunct () =
     let f = x
     let free_conjunct = 100*a <== b
     
-    let cube = [ Div (f, 3) <== b; free_conjunct ]
+    let cube = [ Div (f, Int 3) <== b; free_conjunct ]
     
     let rew = MbpZ model x cube
     

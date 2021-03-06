@@ -11,11 +11,11 @@ type private BoundingInequalityRule4 =
 
 let private (|ConstDivision|_|) x (expr: Term): (Term * int) option =
     match expr with
-    | Div (Contains x t, d) -> Some(t, d)
+    | Div (Contains x t, Int d) -> Some(t, d)
     | _ -> None
 
-let private condition_upper f a (b: int) (d: Term) = [ f*(Int a) <== (d + Term.One)*(Int b) - Term.One  ; d <! Div(Term.Max, b) ]
-let private condition_lower f b (y: int) (g: Term) = [ (g + Term.One)*(Int y) - Term.One <! f*(Int b) ; g <! Div(Term.Max, y) ]
+let private condition_upper f a (b: int) (d: Term) = [ f*(Int a) <== (d + Term.One)*(Int b) - Term.One  ; d <! Div(Term.Max, Int b) ]
+let private condition_lower f b (y: int) (g: Term) = [ (g + Term.One)*(Int y) - Term.One <! f*(Int b) ; g <! Div(Term.Max, Int y) ]
 
 let private (|BoundWithDivision|_|) (M: Map<string, int>) x (conjunct: Formula) =
     match conjunct with

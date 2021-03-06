@@ -33,7 +33,7 @@ let TestRule3 () =
                   "x", 1 ] |> Map.ofList
     let f = x
     let free_conjunct = 100*a <== b
-    let upper_bound = Div (f, 3) <== b
+    let upper_bound = Div (f, Int 3) <== b
     let cube = [ upper_bound; free_conjunct ]
     
     match cube with
@@ -41,7 +41,7 @@ let TestRule3 () =
         Assert.AreEqual(conjunct, upper_bound)
         let rewritten = apply_rule3 model x conjunct
 
-        Assert.True(List.contains (Le(b, Div(Int 255, 3))) rewritten)
+        Assert.True(List.contains (Le(b, Div(Int 255, Int 3))) rewritten)
         Assert.True(List.contains (Le(x, (Mult(Plus(b, Term.One), Int 3)-Term.One))) rewritten)
     
     | _ -> Assert.Fail()

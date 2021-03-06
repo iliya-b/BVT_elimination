@@ -18,19 +18,30 @@ let rec interpret_term (M: Map<string, int>) formula: int =
         | Var name -> Map.find name M
         | Mult (t1, t2) -> (interpret_term t1) * (interpret_term t2)
         | Plus (t1, t2) -> (interpret_term t1) + (interpret_term t2)
-        | Div (t1, d) -> (interpret_term t1) / d
+        | Div (t1, Int d) -> (interpret_term t1) / d
         | Inv t -> -(interpret_term t)
         | Int c -> c
 
     d %% (Term.MaxNumber+1)
 
+
+let rec is_LIA term =
+    match term with
+     | Int _
+     | Var _ -> true
+     | Mult (a, Int _)
+     | Mult (Int _, a)  -> is_LIA a
+     | Plus (a, b)  -> (is_LIA a) && (is_LIA b)
+     | Inv a
+     | Div (a, _) -> is_LIA a
+     
 let rec substitute_term (M: Map<Term, Term>) term =
     let substitute_term = substitute_term M
     match term with
     | t when Map.containsKey t M -> Map.find t M
     | Mult (t1, t2) -> Mult(substitute_term t1, substitute_term t2)
     | Plus (t1, t2) -> Plus(substitute_term t1, substitute_term t2)
-    | Div (t1, d) -> Div(substitute_term t1, d)
+    | Div (t1, d) -> Div(substitute_term t1, substitute_term d)
     | Inv t -> Inv(substitute_term t)
     | Int t -> Int t
     | Var t -> Var t
@@ -59,8 +70,8 @@ let rec term_contains (var: Term) term =
     | t when t = var -> true
     | Mult (t1, t2)
     | Plus (t1, t2) -> contains t1 || contains t2
-    | Inv (t)
-    | Div (t, _) -> contains t
+    | Div (t1, t2) -> contains t1 || contains t2
+    | Inv (t) -> contains t
     | Int _
     | Var _ -> false
     | _ -> failwith "unexpected term"
@@ -93,7 +104,7 @@ let rec z3fy_term (ctx: Context) (expr: Term): BitVecExpr =
     | Plus (t1, Inv t2)
     | Plus (Inv t2, t1) -> ctx.MkBVSub(z3fy t1, z3fy t2)
     | Plus (t1, t2) -> ctx.MkBVAdd(z3fy t1, z3fy t2)
-    | Div (t1, d) -> ctx.MkBVUDiv(z3fy t1, ctx.MkBV(d, Term.Bits))
+    | Div (t1, d) -> ctx.MkBVUDiv(z3fy t1, z3fy d)
     | Inv t -> ctx.MkBVNeg(z3fy t)
     | Int c -> ctx.MkBV(c, Term.Bits) :> BitVecExpr
 let rec z3fy_formula (ctx: Context) formula: BoolExpr =

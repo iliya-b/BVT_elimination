@@ -83,5 +83,5 @@ let apply_rule2 M x (cube: Formula list) =
                 |> (List.choose ((|Bounds|_|) x))
                 |> (List.choose make_conjunct2)
 
-    let c4 = Div(term_L * (Int(lcm / coefficient_L)), lcm) <! Div(term_L * (Int(lcm / coefficient_L)), lcm)
+    let c4 = Div(term_L * (Int(lcm / coefficient_L)), Int lcm) <! Div(term_L * (Int(lcm / coefficient_L)), Int lcm)
     c4 :: (c1 @ c2 @ c3)
