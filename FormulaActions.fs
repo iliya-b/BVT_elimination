@@ -21,6 +21,10 @@ let rec interpret_term (M: Map<string, int>) formula: int =
         | Div (t1, d) -> (interpret_term t1) / (interpret_term d)
         | Inv t -> -(interpret_term t)
         | Int c -> c
+        | Extract(t, a, b) ->
+            let d = (interpret_term t)
+            let s = b - a + 1
+            ((((1 <<< s) - 1 ) &&& (d >>> (a-1))))
 
     d %% (Term.MaxNumber+1)
 let rec interpret_formula (M: Map<string, int>) formula: bool =
@@ -29,6 +33,7 @@ let rec interpret_formula (M: Map<string, int>) formula: bool =
 
     let d =
         match formula with
+         | Not f -> interpret_formula  f
          | Iff (f1, f2) -> interpret_formula f1 && interpret_formula f2
          | Implies (f1, f2) -> not (interpret_formula f1) || interpret_formula f2
          | And args -> List.forall interpret_formula args
@@ -40,7 +45,7 @@ let rec interpret_formula (M: Map<string, int>) formula: bool =
          | Gt _ -> failwith "use Le, Lt instead of Ge, Gt"
          | True -> true
          | False -> false 
-
+         
          | Exists _ -> failwith "try to interpret quantified formula"
 
     d
@@ -56,6 +61,7 @@ let rec is_LIA_term term =
      | Div _ -> false
      | Plus (a, b)  -> (is_LIA_term a) && (is_LIA_term b)
      | Inv a -> is_LIA_term a
+     | Extract _ -> false
 let rec is_LIA_formula formula =
     match formula with
     | And args
@@ -79,6 +85,7 @@ let rec substitute_term (M: Map<Term, Term>) term =
     | Plus (t1, t2) -> Plus(substitute_term t1, substitute_term t2)
     | Div (t1, d) -> Div(substitute_term t1, substitute_term d)
     | Inv t -> Inv(substitute_term t)
+    | Extract (t, a, b) -> Extract(substitute_term t, a, b)
     | Int t -> Int t
     | Var t -> Var t
 
@@ -142,7 +149,8 @@ let rec z3fy_term (ctx: Context) (expr: Term): BitVecExpr =
     | Plus (t1, t2) -> ctx.MkBVAdd(z3fy t1, z3fy t2)
     | Div (t1, d) -> ctx.MkBVUDiv(z3fy t1, z3fy d)
     | Inv t -> ctx.MkBVNeg(z3fy t)
-    | Int c -> ctx.MkBV(c, Term.Bits) :> BitVecExpr
+    | Extract (t, a, b ) -> ctx.MkExtract(uint32 a, uint32 b, z3fy t)
+    | Int c -> ctx.MkBV(c, (if c=0 then 1u else Term.Bits)) :> BitVecExpr
 let rec z3fy_formula (ctx: Context) formula: BoolExpr =
     let z3fy_formula = z3fy_formula ctx
     let z3fy_term = z3fy_term ctx

@@ -47,6 +47,7 @@ let LazyMbp (M: Map<string, int>) x (cube: Formula list)  =
     let ctx = new Context()
     let solver = ctx.MkSolver()
     solver.Add(z3fy_formula ctx checker)
+
     if solver.Check()=Status.SATISFIABLE then
         let mutable S1 = S @ (List.map (substitute_formula x_mapping) linear)
         for s in S do

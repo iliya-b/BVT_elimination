@@ -1,12 +1,14 @@
 module Tests.Mbp
 
 open BVTProver
+open BVTProver
 open Microsoft.Z3
 open NUnit.Framework
-open BVTProver.Bvt
+
 open BVTProver.Formula
 open Mbp
 open FormulaActions
+open Bvt
 
 [<SetUp>]
 let Setup () =

@@ -15,6 +15,7 @@ type Term =
     | Plus of Term*Term
     | Inv of Term
     | Div of Term*Term
+    | Extract of Term*int*int
 
     override this.ToString() =
         match this with 
@@ -25,6 +26,7 @@ type Term =
             | Inv t -> sprintf "-(%O)" t
             | Div (t1, Int n) -> sprintf "(%O div %d)" t1 n
             | Int n -> sprintf "%d" n
+            | Extract(t, a, b) -> sprintf "(%O)[%d..%d]" t a b
             | _ -> failwith "unknown term"
     
 type Formula =
