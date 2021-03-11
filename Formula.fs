@@ -62,8 +62,8 @@ type Formula =
             | Iff (t1, t2) -> sprintf "%O <=> %O" t1 t2
 
 
-    static member (~-) (t: Formula) = Not(t)
-    static member (=>) (t1: Formula, t2: Formula) = Implies(t1, t2)
+    static member (~-) t = Not(t)
+    static member (=>) (t1, t2) = Implies(t1, t2)
 
                 
 
@@ -88,20 +88,20 @@ type Term with
             | t1, t2 -> Plus(t1, t2)
 //    static member (/) (t1: Term, t2: Term) = Div(t1, t2)
     
-    static member (*) (t1: Term, t2: Term) = Mult(t1, t2)
-    static member (*) (t1: int, t2: Term) = Mult(Int t1, t2)
-    static member (===) (t1: Term, t2: Term) = Equals(t1, t2)
-    static member (<==) (t1: Term, t2: Term) = Le(t1, t2)
-    static member (>==) (t1: Term, t2: Term) = Ge(t1, t2)
-    static member (>!) (t1: Term, t2: Term) = Gt(t1, t2)
-    static member (<!) (t1: Term, t2: Term) = Lt(t1, t2)
+    static member (*) (t1, t2)  = Mult(t1, t2)
+    static member (*) (t1, t2)  = Mult(Int t1, t2)
+    static member (===) (t1, t2)  = Equals(t1, t2)
+    static member (<==) (t1, t2)  = Le(t1, t2)
+    static member (>==) (t1, t2)  = Ge(t1, t2)
+    static member (>!) (t1, t2)  = Gt(t1, t2)
+    static member (<!) (t1, t2)  = Lt(t1, t2)
     
-let (|AsMult|_|) (e: Term) =
+let (|AsMult|_|) e =
      match e with
      | Mult (a, b) -> Some (a, b)
      | a -> Some(Int 1, a)
 
-let (|AsLe|_|) (e: Formula) =
+let (|AsLe|_|) e =
      match e with
         | Le(t1, t2) 
         | Ge(t2, t1) -> Some(t1, t2)
@@ -110,7 +110,7 @@ let (|AsLe|_|) (e: Formula) =
         | _ -> None
 
 
-let (|AsLt|_|) (e: Formula) =
+let (|AsLt|_|) e =
      match e with
         | Lt(t1, t2) 
         | Gt(t2, t1) -> Some(t1, t2)

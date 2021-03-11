@@ -16,7 +16,7 @@ let var_name x =
          | Var name -> name
          | _ -> failwith "x must be a variable"
        
-let rec MbpZ (M: Map<string, int>) (x: Term) (cube: Formula list) =
+let rec MbpZ M x cube =
     let var_name = var_name x
     let x_mapping = [x, Int (Map.find var_name M)] |> Map.ofList
     
@@ -36,7 +36,7 @@ let rec MbpZ (M: Map<string, int>) (x: Term) (cube: Formula list) =
         open_conjuncts @ rewritten
 
 
-let LazyMbp (M: Map<string, int>) x (cube: Formula list)  =
+let LazyMbp M x cube =
     let var_name = var_name x
     let linear, bitvector = List.partition is_LIA_formula cube
     

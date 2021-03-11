@@ -1,12 +1,12 @@
 module BVTProver.MathHelpers
 
-let rec gcd (a:int, b:int) =
+let rec gcd (a, b) =
     if b=0 then
         a
     else
         gcd(b, a % b)
 
-let lcm (a:int, b:int) = // todo handle overflow or  
+let lcm (a, b) = // todo handle overflow or  
     (a * b) / gcd (a, b)
 
-let lcmlist (list: int list) = List.reduce (fun a b -> lcm(a, b)) list
+let lcmlist list = List.reduce (fun a b -> lcm(a, b)) list

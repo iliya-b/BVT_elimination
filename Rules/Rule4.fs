@@ -9,15 +9,15 @@ type private BoundingInequalityRule4 =
                 | Upper_ of Term*int*int*Term // (f(x) div d)*a < t
                 | Lower_ of Term*int*int*Term
 
-let private (|ConstDivision|_|) x (expr: Term): (Term * int) option =
+let private (|ConstDivision|_|) x expr =
     match expr with
     | Div (Contains x t, Int d) -> Some(t, d)
     | _ -> None
 
-let private condition_upper f a (b: int) (d: Term) = [ f*(Int a) <== (d + Term.One)*(Int b) - Term.One  ; d <! Div(Term.Max, Int b) ]
-let private condition_lower f b (y: int) (g: Term) = [ (g + Term.One)*(Int y) - Term.One <! f*(Int b) ; g <! Div(Term.Max, Int y) ]
+let private condition_upper f a b d = [ f*(Int a) <== (d + Term.One)*(Int b) - Term.One  ; d <! Div(Term.Max, Int b) ]
+let private condition_lower f b y g = [ (g + Term.One)*(Int y) - Term.One <! f*(Int b) ; g <! Div(Term.Max, Int y) ]
 
-let private (|BoundWithDivision|_|) (M: Map<string, int>) x (conjunct: Formula) =
+let private (|BoundWithDivision|_|) M x conjunct =
     match conjunct with
         | Le (AsMult(Int a, ConstDivision x (f, b)
         | ConstDivision x (f, b), Int a), FreeOf x d) when M |= And(condition_upper f a b d) -> Some (Upper_(f, b, a, d))
@@ -25,7 +25,7 @@ let private (|BoundWithDivision|_|) (M: Map<string, int>) x (conjunct: Formula) 
         | ConstDivision x (f, y), Int b)) when M |= And(condition_lower f b y g) -> Some (Lower_(f, y, b, g))
         | _ -> None
 
-let (|Rule4|_|) (M: Map<string, int>) x (cube: Formula list) =
+let (|Rule4|_|) M x cube =
     match some_matches ((|BoundWithDivision|_|) M x) cube with
         | Some ((BoundWithDivision M x _) as conjunct)  -> Some conjunct
         | _ -> None

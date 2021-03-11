@@ -12,14 +12,14 @@ type private BoundingInequality =
     static member is_upper = function Upper _ -> true | _ -> false
        
 type RuleType = All | Any
-let private (|Bounds|_|) x (conjunct: Formula) = 
+let private (|Bounds|_|) x conjunct = 
     
     match conjunct with
         | AsLe (AsMult (ThisVar x, Int d | Int d, ThisVar x), FreeOf x t) -> Some (Upper(d, t)) // β×x ≤ b
         | AsLt (FreeOf x t, AsMult (ThisVar x, Int d | Int d, ThisVar x)) -> Some (Lower(d, t)) // a < α×x
         | _ -> None
 
-let (|Rule2|_|) (M: Map<string, int>) x (cube: Formula list) =
+let (|Rule2|_|) M x cube =
     let (|Bounds|_|) = (|Bounds|_|) x
     let var_name =
         match x with
@@ -51,7 +51,7 @@ let (|Rule2|_|) (M: Map<string, int>) x (cube: Formula list) =
     else
         None
 
-let apply_rule2 M x (cube: Formula list) =
+let apply_rule2 M x cube =
     let bounds = cube |> (List.choose ((|Bounds|_|) x))
     let lcm = bounds |> (List.map (BoundingInequality.tuplify >> fst)) |> lcmlist
 

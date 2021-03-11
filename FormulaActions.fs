@@ -10,7 +10,7 @@ type Expression =
     | Formula of Formula
     | Term of Term
 
-let rec interpret_term (M: Map<string, int>) formula: int =
+let rec interpret_term M formula =
     let interpret_term = interpret_term M
 
     let d =
@@ -24,38 +24,34 @@ let rec interpret_term (M: Map<string, int>) formula: int =
         | Extract(t, a, b) ->
             let d = (interpret_term t)
             let s = b - a + 1
-            ((((1 <<< s) - 1 ) &&& (d >>> (a-1))))
+            ((1 <<< s) - 1) &&& (d >>> (a-1))
 
     d %% (Term.MaxNumber+1)
-let rec interpret_formula (M: Map<string, int>) formula: bool =
+let rec interpret_formula M formula: bool =
     let interpret_formula = interpret_formula M
     let interpret_term = interpret_term M
 
-    let d =
-        match formula with
-         | Not f -> interpret_formula  f
-         | Iff (f1, f2) -> interpret_formula f1 && interpret_formula f2
-         | Implies (f1, f2) -> not (interpret_formula f1) || interpret_formula f2
-         | And args -> List.forall interpret_formula args
-         | Or args -> List.exists interpret_formula args
-         | Equals (a, b) -> interpret_term a = interpret_term b
-         | Le (a, b) -> interpret_term a <= interpret_term b
-         | Lt (a, b) -> interpret_term a < interpret_term b
-         | Ge _
-         | Gt _ -> failwith "use Le, Lt instead of Ge, Gt"
-         | True -> true
-         | False -> false 
-         
-         | Exists _ -> failwith "try to interpret quantified formula"
-
-    d
+    match formula with
+        | Not f -> interpret_formula  f
+        | Iff (f1, f2) -> interpret_formula f1 && interpret_formula f2
+        | Implies (f1, f2) -> not (interpret_formula f1) || interpret_formula f2
+        | And args -> List.forall interpret_formula args
+        | Or args -> List.exists interpret_formula args
+        | Equals (a, b) -> interpret_term a = interpret_term b
+        | Le (a, b) -> interpret_term a <= interpret_term b
+        | Lt (a, b) -> interpret_term a < interpret_term b
+        | Ge _
+        | Gt _ -> failwith "use Le, Lt instead of Ge, Gt"
+        | True -> true
+        | False -> false 
+        | Exists _ -> failwith "try to interpret quantified formula"
 
 let rec is_LIA_term term =
     match term with
      | Int _
      | Var _ -> true
-     | Mult (a, Int _) // allow multiplication by a constant
-     | Mult (Int _, a)  -> is_LIA_term a
+     | Mult (a, Int _) 
+     | Mult (Int _, a)  -> is_LIA_term a // allow multiplication by a constant
      | Mult _ -> false
      | Div (a, Int _) -> is_LIA_term a // allow division by a constant
      | Div _ -> false
@@ -77,7 +73,7 @@ let rec is_LIA_formula formula =
     | Not t -> is_LIA_formula t
     | _ -> false
      
-let rec substitute_term (M: Map<Term, Term>) term =
+let rec substitute_term M term =
     let substitute_term = substitute_term M
     match term with
     | t when Map.containsKey t M -> Map.find t M
@@ -89,7 +85,7 @@ let rec substitute_term (M: Map<Term, Term>) term =
     | Int t -> Int t
     | Var t -> Var t
 
-let rec substitute_formula (M: Map<Term, Term>) formula: Formula =
+let rec substitute_formula M formula =
          let substitute_formula = substitute_formula M
          let substitute_term = substitute_term M
          match formula with 
@@ -107,7 +103,7 @@ let rec substitute_formula (M: Map<Term, Term>) formula: Formula =
             | (True | False) as constant -> constant 
             
 
-let rec term_contains (var: Term) term =
+let rec term_contains var term =
     let contains = term_contains var
     match term with
     | t when t = var -> true
@@ -121,7 +117,7 @@ let rec term_contains (var: Term) term =
 
 
 
-let rec formula_contains (var: Term) expr =
+let rec formula_contains var expr =
     let contains = formula_contains var
     let term_contains = term_contains var
     match expr with
@@ -139,7 +135,7 @@ let rec formula_contains (var: Term) expr =
     | _ -> false
 
 
-let rec z3fy_term (ctx: Context) (expr: Term): BitVecExpr =
+let rec z3fy_term (ctx: Context) expr =
     let z3fy = z3fy_term ctx
     match expr with
     | Var name -> ctx.MkBVConst(name, Term.Bits)
