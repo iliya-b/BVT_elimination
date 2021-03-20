@@ -1,4 +1,5 @@
 module BVTProver.RewriteRules.Rule2
+open System.Collections.Generic
 open BVTProver
 open Formula
 open MathHelpers
@@ -6,8 +7,8 @@ open FormulaActions
 
 
 type private BoundingInequality =
-    | Upper of int*Term
-    | Lower of int*Term
+    | Upper of uint32*Term
+    | Lower of uint32*Term
     static member tuplify = function Upper (a, b) | Lower (a, b) -> (a, b)
     static member is_upper = function Upper _ -> true | _ -> false
        
@@ -19,7 +20,7 @@ let private (|Bounds|_|) x conjunct =
         | AsLt (FreeOf x t, AsMult (ThisVar x, Int d | Int d, ThisVar x)) -> Some (Lower(d, t)) // a < α×x
         | _ -> None
 
-let (|Rule2|_|) M x cube =
+let (|Rule2|_|) (M: IDictionary<string, uint32>) x cube =
     let (|Bounds|_|) = (|Bounds|_|) x
     let var_name =
         match x with
@@ -35,7 +36,7 @@ let (|Rule2|_|) M x cube =
         let LCM = bounds |> (List.map fst) |> lcmlist
         let side_condition num t = t <== Int((Term.MaxNumber)/(LCM/num))
     
-        let var_value = Map.find var_name M
+        let var_value = M.[var_name]
         // side conditions
         let lcm_overflows = LCM > Term.MaxNumber
         

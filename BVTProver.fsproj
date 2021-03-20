@@ -7,6 +7,7 @@
 
     <ItemGroup>
         <Compile Include="MathHelpers.fs" />
+        <Compile Include="Helpers.fs" />
         <Compile Include="Z3Patterns.fs" />
         <Compile Include="Formula.fs" />
         <Compile Include="FormulaActions.fs" />

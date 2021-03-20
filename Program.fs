@@ -1,4 +1,5 @@
 ﻿module Program
+open System
 open BVTProver
 open MathHelpers    
 [<EntryPoint>]

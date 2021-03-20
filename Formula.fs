@@ -1,21 +1,30 @@
 module BVTProver.Formula
 open System
+open System.Collections
 
 
 let (%%) a b = // python-like mod
     let c = a % b
-    if c < 0 then
+    if c < 0u then
         b + c
     else
         c
+        
 type Term =
-    | Int of int
+    
+    | Int of uint32
+    | BV of bool[]*uint32 // todo: use BitArray
     | Var of string
     | Mult of Term*Term
     | Plus of Term*Term
     | Inv of Term
     | Div of Term*Term
     | Extract of Term*int*int
+    | BitAnd of Term*Term
+    | BitOr of Term*Term
+    | ShiftLeft of Term*Term
+    | ShiftRightLogical of Term*Term
+    | ZeroEx of Term*int
 
     override this.ToString() =
         match this with 
@@ -37,9 +46,15 @@ type Formula =
     | Not of Formula
     | Exists of (Term*Formula)
     | Le of Term*Term
+    | SLe of Term*Term
     | Lt of Term*Term
-    | Ge of Term*Term // see AsLe, AsLt active patterns for unambiguous matching
+    | SLt of Term*Term
+    
+    | Ge of Term*Term // eliminate Ge/Gt
+    | SGe of Term*Term 
     | Gt of Term*Term
+    | SGt of Term*Term
+    
     | Equals of Term*Term
     | True
     | False
@@ -68,10 +83,10 @@ type Formula =
                 
 
 type Term with
-    static member Zero = Int 0 
-    static member One = Int 1 
-    static member Max = Int 255
-    static member MaxNumber = 255
+    static member Zero = Int 0u
+    static member One = Int 1u
+    static member Max = Int 255u
+    static member MaxNumber = 255u
     static member Bits = 8u
     member private this.SmartInv =
         match this with
@@ -79,12 +94,12 @@ type Term with
             | t -> Inv t
     static member (-) (t1: Term, t2: Term) =
         match t1 with
-            | Int 0 -> t2.SmartInv
+            | Int 0u -> t2.SmartInv
             | _ -> Plus(t1, t2.SmartInv)
     static member (+) (t1: Term, t2: Term) =
         match t1, t2 with
-            | Int 0, t
-            | t, Int 0 -> t
+            | Int 0u, t
+            | t, Int 0u -> t
             | t1, t2 -> Plus(t1, t2)
 //    static member (/) (t1: Term, t2: Term) = Div(t1, t2)
     
@@ -99,7 +114,7 @@ type Term with
 let (|AsMult|_|) e =
      match e with
      | Mult (a, b) -> Some (a, b)
-     | a -> Some(Int 1, a)
+     | a -> Some(Int 1u, a)
 
 let (|AsLe|_|) e =
      match e with

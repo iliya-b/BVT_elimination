@@ -1,7 +1,7 @@
 module BVTProver.MathHelpers
 
 let rec gcd (a, b) =
-    if b=0 then
+    if b=0u then
         a
     else
         gcd(b, a % b)

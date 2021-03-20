@@ -26,11 +26,7 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
     let f = c - x + y <== z
     
 
-    let model = Map.empty<string, int>.
-                    Add("x", 9).
-                    Add("y", 255).
-                    Add("z", 80).
-                    Add("c", 84)
+    let model = dict ["x", 9u ; "y", 255u ; "z", 80u ; "c", 84u]
                     
     let rewritten = And(Rewrite x model f)
     
@@ -49,10 +45,7 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
     
 [<Test>]
 let TestMbpInterpolatesTheFormula () =
-    let model = Map.empty<string, int>.
-                        Add("a", 10).
-                        Add("b", 100).
-                        Add("x", 5)
+    let model = dict [ "a", 10u ; "b", 100u ; "x", 5u ]
     
     let x = Var "x"
     let a = Var "a"
@@ -60,14 +53,14 @@ let TestMbpInterpolatesTheFormula () =
     
     let ctx = new Context();
     
-    let cube = [ a <! 4*x ; 6*x <== b ] // a < 4x ∧ 6x < b
+    let cube = [ a <! 4u*x ; 6u*x <== b ] // a < 4x ∧ 6x < b
     let mbp = MbpZ model x cube
     Assert.False(formula_contains x (And mbp))
     
     Assert.AreEqual(3, mbp.Length)
-    Assert.True(List.contains (Le (Var "a",Int 85)) mbp)
-    Assert.True(List.contains (Le (Var "b",Int 127)) mbp)
-    Assert.True(List.contains (Lt (Div (Mult (Var "a",Int 3), Int 12),Div (Mult (Var "a",Int 3), Int 12))) mbp)
+    Assert.True(List.contains (Le (Var "a",Int 85u)) mbp)
+    Assert.True(List.contains (Le (Var "b",Int 127u)) mbp)
+    Assert.True(List.contains (Lt (Div (Mult (Var "a",Int 3u), Int 12u),Div (Mult (Var "a",Int 3u), Int 12u))) mbp)
     // todo: not rely on order of arguments in commuting operations
     printfn "%A" mbp
     
@@ -81,14 +74,12 @@ let TestMbpInterpolatesTheFormula () =
 let TestMbpKeepsFreeConjunct () =
     let x, a, b = Var "x", Var "a", Var "b"
     
-    let model = Map.empty<string, int>.
-                        Add("a", 0).
-                        Add("b", 200).
-                        Add("x", 1)
-    let f = x
-    let free_conjunct = 100*a <== b
+    let model = dict [ "a", 0u ; "b", 200u ; "x", 1u ]
     
-    let cube = [ Div (f, Int 3) <== b; free_conjunct ]
+    let f = x
+    let free_conjunct = 100u*a <== b
+    
+    let cube = [ Div (f, Int 3u) <== b; free_conjunct ]
     
     let rew = MbpZ model x cube
     

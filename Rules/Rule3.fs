@@ -6,8 +6,8 @@ open FormulaActions
 
 
 type private BoundingInequalityRule3 =
-    | Upper_ of Term*int*Term
-    | Lower_ of Term*int*Term
+    | Upper_ of Term*uint32*Term
+    | Lower_ of Term*uint32*Term
 
 let private (|ConstDivision|_|) x expr =
     match expr with

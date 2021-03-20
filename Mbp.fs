@@ -1,5 +1,6 @@
 module BVTProver.Mbp
 
+open System.Collections.Generic
 open Formula
 open Microsoft.Z3
 open Microsoft.Z3
@@ -16,9 +17,10 @@ let var_name x =
          | Var name -> name
          | _ -> failwith "x must be a variable"
        
-let rec MbpZ M x cube =
+let rec MbpZ (M: IDictionary<string, uint32>) x cube =
+    let d = dict []
     let var_name = var_name x
-    let x_mapping = [x, Int (Map.find var_name M)] |> Map.ofList
+    let x_mapping = [x, (Int (M.[var_name]))] |> dict
     
     let residual, open_conjuncts = List.partition (formula_contains x) cube
 
@@ -41,7 +43,7 @@ let LazyMbp M x cube =
     let linear, bitvector = List.partition is_LIA_formula cube
     
     let P = MbpZ M x linear
-    let x_mapping = [x, Int (Map.find var_name M)] |> Map.ofList
+    let x_mapping = [x, Int (M.[var_name])] |> dict
     let S = List.map (substitute_formula x_mapping) bitvector
     let checker = Not (And (P @ S) => Exists(x, And cube))
     let ctx = new Context()

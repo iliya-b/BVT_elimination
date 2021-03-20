@@ -47,7 +47,7 @@ let private getRules conclusion var =
             | Ge(Inv(t), y) when first_two_terms_bounded t t y ->
                 [ [t <== _0-y] ] // inv
             | Le(Mult(Int k1, ThisVar var), Mult(Int k2, ThisVar var)) ->
-                [ [var <== Int ((Term.MaxNumber+1) * k1 / k2) ] ] // bothx4
+                [ [var <== Int ((Term.MaxNumber+1u) * k1 / k2) ] ] // bothx4
             | _ -> []
      
 
