@@ -1,7 +1,7 @@
 module BVTProver.Formula
 open System
 open System.Collections
-
+open Helpers
 
 let (%%) a b = // python-like mod
     let c = a % b
@@ -9,10 +9,11 @@ let (%%) a b = // python-like mod
         b + c
     else
         c
+let private MaxInt = uint32 Int32.MaxValue
         
 type Term =
     | BV of BitArray // todo: use BitArray
-    | Var of string
+    | Var of string*uint32
     | Mult of Term*Term
     | Plus of Term*Term
     | Inv of Term
@@ -23,21 +24,9 @@ type Term =
     | ShiftLeft of Term*Term
     | ShiftRightLogical of Term*Term
     | ZeroEx of Term*int
+    | Ite of Formula*Term*Term
 
-    
-let private MaxInt = uint32 Int32.MaxValue
-let Int (N: uint32) = 
-    if N > MaxInt then
-        failwith "Supporting only 0 <= x <= Int32.MaxValue"
-    else
-        BV (BitArray (BitConverter.GetBytes(N)))
-let (|Int|_|) x =
-    match x with
-     | BV x ->  let res = Array.create<int> 1 0 
-                x.CopyTo(res, 0)       // maximum integer is Int32.MaxValue, not UInt32
-                Some (uint32 res.[0])  // problem is that BitArray supports converting only to int32
-     | _ -> None
-type Formula =
+and Formula =
     | And of Formula list
     | Or of Formula list
     | Iff of Formula*Formula
@@ -81,6 +70,15 @@ type Formula =
 
                 
 
+let Int (N: uint32) = 
+    if N > MaxInt then
+        failwith "Supporting only 0 <= x <= Int32.MaxValue"
+    else
+        BV (BitArray (BitConverter.GetBytes(N)))
+let (|Int|_|) x =
+    match x with
+     | BV x -> Some (integer_of_bits x)
+     | _ -> None
 type Term with
     static member Zero = Int 0u
     static member One = Int 1u
@@ -112,7 +110,7 @@ type Term with
 
     override this.ToString() =
         match this with 
-            | Var name -> sprintf "%s" name
+            | Var (name, size) -> sprintf "%s" name
             | Mult (t1, t2) -> sprintf "%O*%O" t1 t2
             | Plus (t1, Inv t2) -> sprintf "(%O-%O)" t1 t2
             | Plus (t1, t2) -> sprintf "(%O+%O)" t1 t2
@@ -120,6 +118,7 @@ type Term with
             | Div (t1, Int n) -> sprintf "(%O div %d)" t1 n
             | Int n -> sprintf "%d" n
             | Extract(t, a, b) -> sprintf "(%O)[%d..%d]" t a b
+            | Ite (f, a, b) -> sprintf "if (%O) then (%O) else (%O)" f a b
             | _ -> failwith "unknown term"
     
 let (|AsMult|_|) e =

@@ -14,7 +14,7 @@ open Bvt
 
 let var_name x =
         match x with
-         | Var name -> name
+         | Var (name, s) -> name
          | _ -> failwith "x must be a variable"
        
 let rec MbpZ (M: IDictionary<string, uint32>) x cube =

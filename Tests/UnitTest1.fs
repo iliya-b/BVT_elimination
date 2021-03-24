@@ -18,10 +18,10 @@ let Setup () =
 [<Test>]
 let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
     let ctx = new Context()
-    let x = Var "x"
-    let y = Var "y"
-    let c = Var "c"
-    let z = Var "z"
+    let x = Var ("x", 8u)
+    let y = Var ("y", 8u)
+    let c = Var ("c", 8u)
+    let z = Var ("z", 8u)
                             
     let f = c - x + y <== z
     
@@ -47,9 +47,9 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
 let TestMbpInterpolatesTheFormula () =
     let model = dict [ "a", 10u ; "b", 100u ; "x", 5u ]
     
-    let x = Var "x"
-    let a = Var "a"
-    let b = Var "b"
+    let x = Var ("x", 8u)
+    let a = Var ("a", 8u)
+    let b = Var ("b", 8u)
     
     let ctx = new Context();
     
@@ -58,9 +58,9 @@ let TestMbpInterpolatesTheFormula () =
     Assert.False(formula_contains x (And mbp))
     
     Assert.AreEqual(3, mbp.Length)
-    Assert.True(List.contains (Le (Var "a",Int 85u)) mbp)
-    Assert.True(List.contains (Le (Var "b",Int 127u)) mbp)
-    Assert.True(List.contains (Lt (Div (Mult (Var "a",Int 3u), Int 12u),Div (Mult (Var "a",Int 3u), Int 12u))) mbp)
+    Assert.True(List.contains (Le (Var ("a", 8u),Int 85u)) mbp)
+    Assert.True(List.contains (Le (Var ("b", 8u),Int 127u)) mbp)
+    Assert.True(List.contains (Lt (Div (Mult (Var ("a", 8u),Int 3u), Int 12u),Div (Mult (Var ("a", 8u),Int 3u), Int 12u))) mbp)
     // todo: not rely on order of arguments in commuting operations
     printfn "%A" mbp
     
@@ -72,7 +72,7 @@ let TestMbpInterpolatesTheFormula () =
     
 [<Test>]
 let TestMbpKeepsFreeConjunct () =
-    let x, a, b = Var "x", Var "a", Var "b"
+    let x, a, b = Var ("x", 8u), Var ("a", 8u), Var ("b", 8u)
     
     let model = dict [ "a", 0u ; "b", 200u ; "x", 1u ]
     

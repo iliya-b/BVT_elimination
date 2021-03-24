@@ -12,7 +12,7 @@ let Setup () =
 
 [<Test>]
 let TestRule2ByPassesWhenLcmOverflows =
-    let x, a, b = Var "x", Var "a", Var "b"
+    let x, a, b = Var ("x", 8u), Var ("a", 8u), Var ("b", 8u)
     
     let model = [ "a", 0u
                   "b", 200u
@@ -26,7 +26,7 @@ let TestRule2ByPassesWhenLcmOverflows =
     
 [<Test>]
 let TestRule3 () =
-    let x, a, b = Var "x", Var "a", Var "b"
+    let x, a, b = Var ("x", 8u), Var ("a", 8u), Var ("b", 8u)
     
     let model = [ "a", 0u
                   "b", 4u

@@ -24,7 +24,7 @@ let (|Rule2|_|) (M: IDictionary<string, uint32>) x cube =
     let (|Bounds|_|) = (|Bounds|_|) x
     let var_name =
         match x with
-         | Var s -> s
+         | Var (s, _) -> s
          | _ -> failwith "x must be a var"
     
     // todo: lazy computation

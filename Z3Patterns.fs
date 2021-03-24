@@ -3,9 +3,9 @@ module BVTProver.Z3Patterns
 open System
 open System.Collections
 open System.ComponentModel
-open System.ComponentModel.Design
 open Microsoft.Z3
 open Helpers
+open MathHelpers
 
 let get_bvt_args (expr: Expr) =
     match expr.Args.[0], expr.Args.[1] with
@@ -52,7 +52,7 @@ let (|ZExtract|_|) (expr: Expr) = if expr.IsBVExtract then Some (expr.Args.[0] :
 
 let (|ZVar|_|) (expr: Expr) =
     if expr.IsConst || expr.IsVar then
-        Some (expr.ToString().Replace("|", ""))
+        Some (expr.ToString().Replace("|", ""), (expr :?> BitVecExpr).SortSize)
     else
         None
 let (|ZInt|_|) (expr: Expr) =
@@ -62,11 +62,45 @@ let (|ZInt|_|) (expr: Expr) =
          | _ -> None
     else
         None
+        
+        
+
+
 let (|ZBV|_|) (expr: Expr) =
     if expr.IsBV && expr.IsNumeral then
         match expr with
          | :? BitVecNum as t when not t.IsInt ->
-             Some (BitArray(t.BigInteger.ToByteArray()))
+             let k = t.ToString()
+             
+             try 
+                 let bits = BitArray [| t.Int |]
+   
+             
+                 let number_length = bits.Length
+                 let vector_length = int t.SortSize
+                 let offset = vector_length - number_length
+                 
+                 if offset = 0 then 
+                     Some (bits)
+                 elif offset > 0 then
+                     let full_vector = BitArray vector_length
+
+                     for i = 0 to number_length-1 do
+                         full_vector.[i+offset] <- bits.[i]
+                         
+                     Some full_vector
+                 else
+                     let full_vector = BitArray vector_length
+
+                     for i = 0 to vector_length-1 do
+                         full_vector.[vector_length-1-i] <- bits.[number_length-1-i]
+                         
+                     Some full_vector
+             with
+               | :? Microsoft.Z3.Z3Exception ->
+                   printf "hmm"
+                   Some (BitArray 0) // todo ???
+                
          | _ -> None
     else
         None
@@ -99,6 +133,7 @@ let (|ZGe|_|) (expr: Expr) = if expr.IsBVUGE then get_bvt_args expr else None
 let (|ZGt|_|) (expr: Expr) = if expr.IsBVUGT then get_bvt_args expr else None
 
 
+let (|ZITE|_|) (expr: Expr) = if expr.IsITE then Some (expr.Args.[0] :?> BoolExpr, expr.Args.[1]  :?> BitVecExpr, expr.Args.[1] :?> BitVecExpr) else None
 let (|ZEquals|_|) (expr: Expr) = if expr.IsEq then get_bvt_args expr else None
 let (|ZExists|_|) (expr: Expr) =
     match expr with
