@@ -5,7 +5,8 @@ open BVTProver
 open Formula
 open Z3Patterns
 open Microsoft.Z3
-
+open Helpers
+open Continuations
 
 type Expression =
     | Formula of Formula
@@ -175,7 +176,8 @@ let rec term_from_z3 (expr: BitVecExpr) =
         let binary_op_list typ l r = Loop l (fun lacc -> Loop r (fun racc -> acc (typ [lacc; racc])) )
         let binary_op typ l r = Loop l (fun lacc -> Loop r (fun racc -> acc (typ (lacc, racc))) )
 
-        match e with 
+        match e with
+            
             | ZVar name -> Var name
             | ZMult (t1, t2) ->  binary_op Mult t1 t2 
             | ZPlus (t1, t2) -> binary_op Plus t1 t2 // Plus(term_from_z3 t1, term_from_z3 t2)
@@ -190,12 +192,93 @@ let rec term_from_z3 (expr: BitVecExpr) =
             | t ->
                     let descr = t.ToString()
                     failwith "unexpected z3 expression {t}"
-    Loop expr (fun x -> x)                    
-                       
+    Loop expr (fun x -> x)
+
+
+let as_term = function | Term t -> t | _ -> failwith "unexpected formula, expected: Term"
+let as_formula = function | Formula t -> t | _ -> failwith "unexpected term, expected: Formula"
+
+let z3_mapper e = 
+    let And (a, b) = And [a ; b]
+    let Or (a, b) = Or [a ; b]
+    
+    let bin_bunch op (t1: Expr) (t2: Expr) =  Bin ((fun e1 e2 -> Formula (op (as_formula e1, as_formula e2))), t1, t2)
+    let bin_predicate op (t1: Expr) t2 =  Bin ((fun e1 e2 -> Formula (op (as_term e1, as_term e2))), t1, t2)
+    let bin_op op (t1: Expr) t2 =  Bin ((fun e1 e2 -> Term (op (as_term e1, as_term e2))), t1, t2)
+    let unary_bool op (t: Expr) =  Unary ((fun e1 -> Formula (op (as_formula e1))), t)
+    let unary_op op (t: Expr) =  Unary ((fun e1 -> Term (op (as_term e1))), t)
+    
+    match e with
+        | ZEquals (t1, t2) -> bin_predicate Equals t1 t2
+        | ZLe (t1, t2) -> bin_predicate Le t1 t2
+        | ZLt (t1, t2) -> bin_predicate Lt t1 t2
+        | ZSLe (t1, t2) -> bin_predicate SLe t1 t2
+        | ZSLt (t1, t2) -> bin_predicate SLt t1 t2
+        | ZCONJ [| t1 ; t2 |] -> bin_bunch And t1 t2
+        | ZDISJ [| t1 ; t2 |] -> bin_bunch Or t1 t2
+        | ZDISJ _ | ZCONJ _ -> failwith "Expected exactly two arguments for a Disjunction/Conjunction"
+        | ZNot t -> unary_bool Not t
+        | ZImplies (l, r) -> bin_bunch Implies l r
+        | ZExists (var, t) ->  unary_bool (fun t -> Exists(Var (var.ToString()), t)) t
+        | ZTrue -> Const (Formula True)
+        | ZFalse -> Const (Formula False)
+        | ZVar name -> Const (Term (Var name))
+        | ZMult (t1, t2) ->  bin_op Mult t1 t2  
+        | ZPlus (t1, t2) -> bin_op Plus t1 t2  
+        | ZBVAnd (t1, t2) -> bin_op BitAnd t1 t2  
+        | ZBVOr (t1, t2) -> bin_op BitOr t1 t2  
+        | ZBVShR (t1, t2) -> bin_op ShiftRightLogical t1 t2 
+        | ZBVShL (t1, t2) -> bin_op ShiftLeft t1 t2  
+        | ZBV c -> Const (Term (BV c))
+        | ZBVZeroEx (t, d) -> unary_op (fun t -> ZeroEx (t, d)) t 
+        | ZExtract (t, a, b) -> unary_op (fun t -> Extract (t, a, b)) t
+        | t -> sprintf "unexpected z3 expression %O" t |> failwith
+
+let convert_z3 = fold z3_mapper (fun x -> x)
+
+
+(*let fold_formula eq le lt sle slt conj disj _not implies exists tru fls var mult plus bv_and bv_or bv_shr bv_shl bv_int bv zero_extend extract (expr: Expression)  =
+        let rec LoopF (e: Formula) (acc: Formula -> Formula) =  
+            
+            match e with
+                | Equals (t1, t2) -> binary_predicate eq (Term t1) (Term t2)
+                | Le (t1, t2) -> binary_predicate le t1 t2
+                | Lt (t1, t2) -> binary_predicate lt t1 t2
+                | SLe (t1, t2) -> binary_predicate sle t1 t2
+                | SLt (t1, t2) -> binary_predicate slt t1 t2
+                | And [| t1 ; t2 |] -> binary_list conj t1 t2
+                | Or [| t1 ; t2 |] -> binary_list disj t1 t2
+                | Not t -> unary_bool_op _not t
+                | Implies (l, r) -> binary_bool_op implies l r
+                | Exist (var, t) ->  unary_bool_op (exists (Var (var.ToString()))) t
+                | True -> Formula tru
+                | False -> Formula fls            
+                | t ->
+                        let descr = t.ToString()
+                        failwith "unexpected z3 expression {t}"
+        let rec LoopT (e: Term) (acc: Term -> Term) =  
+            
+            match e with
+                | Plus(t1, t2) -> Var ""
+                | t ->
+                        let descr = t.ToString()
+                        failwith "unexpected z3 expression {t}"
+        match expr with
+         | Formula f -> Formula (LoopF f (fun x -> x))
+         | Term t    -> Term    (LoopT t (fun x -> x))
+        
+*)
+let fold_term eq le lt sle slt conj disj _not implies exists tru fls var mult plus bv_and bv_or bv_shr bv_shl bv_int bv zero_extend extract (expr: Term)  =
+   Var ""
+
+
+
 let tuplify_list2 list =
     match list with
      | [a; b] -> (a, b)
      | _ -> failwith "cannot tuplify list"
+
+
 
 let rec formula_from_z3 (expr: BoolExpr) =
     let rec Loop e acc =

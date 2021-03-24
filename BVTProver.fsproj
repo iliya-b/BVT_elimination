@@ -5,9 +5,14 @@
         <TargetFramework>netcoreapp3.0</TargetFramework>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <Tailcalls>true</Tailcalls>
+    </PropertyGroup>
+
     <ItemGroup>
         <Compile Include="MathHelpers.fs" />
         <Compile Include="Helpers.fs" />
+        <Compile Include="Continuations.fs" />
         <Compile Include="Z3Patterns.fs" />
         <Compile Include="Formula.fs" />
         <Compile Include="FormulaActions.fs" />

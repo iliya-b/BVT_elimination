@@ -11,9 +11,7 @@ let (%%) a b = // python-like mod
         c
         
 type Term =
-    
-    | Int of uint32
-    | BV of bool[]*uint32 // todo: use BitArray
+    | BV of BitArray // todo: use BitArray
     | Var of string
     | Mult of Term*Term
     | Plus of Term*Term
@@ -26,18 +24,19 @@ type Term =
     | ShiftRightLogical of Term*Term
     | ZeroEx of Term*int
 
-    override this.ToString() =
-        match this with 
-            | Var name -> sprintf "%s" name
-            | Mult (t1, t2) -> sprintf "%O*%O" t1 t2
-            | Plus (t1, Inv t2) -> sprintf "(%O-%O)" t1 t2
-            | Plus (t1, t2) -> sprintf "(%O+%O)" t1 t2
-            | Inv t -> sprintf "-(%O)" t
-            | Div (t1, Int n) -> sprintf "(%O div %d)" t1 n
-            | Int n -> sprintf "%d" n
-            | Extract(t, a, b) -> sprintf "(%O)[%d..%d]" t a b
-            | _ -> failwith "unknown term"
     
+let private MaxInt = uint32 Int32.MaxValue
+let Int (N: uint32) = 
+    if N > MaxInt then
+        failwith "Supporting only 0 <= x <= Int32.MaxValue"
+    else
+        BV (BitArray (BitConverter.GetBytes(N)))
+let (|Int|_|) x =
+    match x with
+     | BV x ->  let res = Array.create<int> 1 0 
+                x.CopyTo(res, 0)       // maximum integer is Int32.MaxValue, not UInt32
+                Some (uint32 res.[0])  // problem is that BitArray supports converting only to int32
+     | _ -> None
 type Formula =
     | And of Formula list
     | Or of Formula list
@@ -110,6 +109,18 @@ type Term with
     static member (>==) (t1, t2)  = Ge(t1, t2)
     static member (>!) (t1, t2)  = Gt(t1, t2)
     static member (<!) (t1, t2)  = Lt(t1, t2)
+
+    override this.ToString() =
+        match this with 
+            | Var name -> sprintf "%s" name
+            | Mult (t1, t2) -> sprintf "%O*%O" t1 t2
+            | Plus (t1, Inv t2) -> sprintf "(%O-%O)" t1 t2
+            | Plus (t1, t2) -> sprintf "(%O+%O)" t1 t2
+            | Inv t -> sprintf "-(%O)" t
+            | Div (t1, Int n) -> sprintf "(%O div %d)" t1 n
+            | Int n -> sprintf "%d" n
+            | Extract(t, a, b) -> sprintf "(%O)[%d..%d]" t a b
+            | _ -> failwith "unknown term"
     
 let (|AsMult|_|) e =
      match e with
