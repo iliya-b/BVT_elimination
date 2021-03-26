@@ -1,6 +1,9 @@
 module Tests.TestLazyMbp
 
+open System
+open System.Collections
 open BVTProver
+open Microsoft.Z3
 open Microsoft.Z3
 open NUnit.Framework
 open BVTProver.Formula
@@ -23,16 +26,15 @@ let TestLAzy () =
 let TestBenchmark() =
     let ctx = new Context()
     let file = "/Volumes/MyPassport/bvt/samples/bench_10.smt2.txt"
-    let fs = ctx.ParseSMTLIB2File(file)
-       
-    let ss = Array.map convert_z3 fs
-    let zz = Array.map (z3fy_expression ctx) ss
-//    let back = Array.map (z3fy_formula ctx) ss
-
+    let benchmark_formulae = ctx.ParseSMTLIB2File(file)
+   
+    let our_formulae = Array.map (convert_z3>>(z3fy_expression ctx)) benchmark_formulae
     
-    let solver = ctx.MkSolver()
-    solver.Add(ctx.MkNot(ctx.MkIff(zz.[44] :?> BoolExpr, fs.[44])))
-    let s = solver.Check()
+    let test_iff (a: Expr) (b: Expr) =
+        let solver = ctx.MkSolver()
+        solver.Add(ctx.MkNot(ctx.MkIff(a :?> BoolExpr, b :?> BoolExpr)))
+        let s = solver.Check()
+        s=Status.UNSATISFIABLE
+    let ok = Array.forall2 test_iff benchmark_formulae our_formulae
     
-    printf "formula: %O %O" zz.[44] fs.[44]
-    printf "model: %s" (solver.Model.ToString())
+    Assert.True ok

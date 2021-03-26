@@ -12,7 +12,8 @@ let (%%) a b = // python-like mod
 let private MaxInt = uint32 Int32.MaxValue
         
 type Term =
-    | BV of BitArray // todo: use BitArray
+    | Integer of uint32*uint32
+    | BV of BitArray 
     | Var of string*uint32
     | Mult of Term*Term
     | Plus of Term*Term

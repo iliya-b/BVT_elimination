@@ -58,24 +58,32 @@ let (|ZVar|_|) (expr: Expr) =
 let (|ZInt|_|) (expr: Expr) =
     if expr.IsBV && expr.IsNumeral then
         match expr with
-         | :? BitVecNum as t when t.IsInt -> Some t.UInt
+         | :? BitVecNum as t -> Some (t.UInt, t.SortSize)
          | _ -> None
     else
         None
         
         
-
-
 let (|ZBV|_|) (expr: Expr) =
     if expr.IsBV && expr.IsNumeral then
         match expr with
-         | :? BitVecNum as t when not t.IsInt ->
+         | :? BitVecNum as t ->
              let k = t.ToString()
              
-             try 
-                 let bits = BitArray [| t.Int |]
-   
-             
+             try
+                 let arr = t.BigInteger.ToByteArray()
+
+                 let bits = BitArray arr
+                 
+                 if BitConverter.IsLittleEndian then
+                     let length = bits.Length;
+                     let mid = (length / 2);
+
+                     for i = 0 to mid-1 do // reverse bits to get BigEndian
+                        let bit = bits.[i]
+                        bits.[i] <- bits.[length - i - 1]
+                        bits.[length - i - 1] <- bit
+                    
                  let number_length = bits.Length
                  let vector_length = int t.SortSize
                  let offset = vector_length - number_length
@@ -133,7 +141,7 @@ let (|ZGe|_|) (expr: Expr) = if expr.IsBVUGE then get_bvt_args expr else None
 let (|ZGt|_|) (expr: Expr) = if expr.IsBVUGT then get_bvt_args expr else None
 
 
-let (|ZITE|_|) (expr: Expr) = if expr.IsITE then Some (expr.Args.[0] :?> BoolExpr, expr.Args.[1]  :?> BitVecExpr, expr.Args.[1] :?> BitVecExpr) else None
+let (|ZITE|_|) (expr: Expr) = if expr.IsITE then Some (expr.Args.[0] :?> BoolExpr, expr.Args.[1]  :?> BitVecExpr, expr.Args.[2] :?> BitVecExpr) else None
 let (|ZEquals|_|) (expr: Expr) = if expr.IsEq then get_bvt_args expr else None
 let (|ZExists|_|) (expr: Expr) =
     match expr with

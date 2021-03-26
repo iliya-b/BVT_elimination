@@ -207,7 +207,7 @@ let z3_mapper e =
         | ZBVOr (t1, t2) -> bin_op BitOr t1 t2  
         | ZBVShR (t1, t2) -> bin_op ShiftRightLogical t1 t2 
         | ZBVShL (t1, t2) -> bin_op ShiftLeft t1 t2  
-        | ZBV c -> Const (Term (BV c))
+        | ZInt (c, size) -> Const (Term (Integer (c, size)))
         | ZBVZeroEx (t, d) -> unary_op (fun t -> ZeroEx (t, d)) t 
         | ZExtract (t, a, b) -> unary_op (fun t -> Extract (t, a, b)) t
         | ZITE(t, a, b) -> Triple ((fun c e1 e2 -> Term (Ite (as_formula c, as_term e1, as_term e2))), t :> Expr, a :> Expr, b :> Expr)
@@ -250,7 +250,7 @@ let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or _Implies _Iff _Exists _Not
         | BitOr (t1, t2) -> bin_op _BitOr (Term t1) (Term t2)
         | ShiftRightLogical (t1, t2) -> bin_op _ShiftRightLogical (Term t1) (Term t2)
         | ShiftLeft (t1, t2) -> bin_op _ShiftLeft (Term t1) (Term t2)
-        | BV c -> Const (_BV c)
+        | Integer (c, size) -> Const (_BV c size)
         | ZeroEx (t, d) -> unary_op (fun t -> _ZeroEx t d) (Term t)
         | Extract (t, a, b) -> unary_op (fun t -> _Extract t a b) (Term t)
         | Ite(t, a, b) -> Triple ((fun c e1 e2 -> _Ite c e1 e2), Formula t, Term a, Term b)
@@ -280,7 +280,7 @@ let z3_formula_mapper (ctx: Context) =
             (fun a b -> ctx.MkBVOR(a :?> BitVecExpr, b :?> BitVecExpr) :> Expr)
             (fun a b -> ctx.MkBVLSHR(a :?> BitVecExpr, b :?> BitVecExpr) :> Expr)
             (fun a b -> ctx.MkBVSHL(a :?> BitVecExpr, b :?> BitVecExpr) :> Expr)
-            (fun bits -> ctx.MkBV(integer_of_bits bits, uint32 bits.Length) :> Expr)
+            (fun bits size -> ctx.MkBV(bits, size) :> Expr)
             (fun a d -> ctx.MkZeroExt(uint32 d, a :?> BitVecExpr) :> Expr)
             (fun t a b -> ctx.MkExtract(uint32 a, uint32 b, t :?> BitVecExpr) :> Expr)
             (fun condition _if _else -> ctx.MkITE(condition :?> BoolExpr, _if :?> BitVecExpr, _else :?> BitVecExpr))
