@@ -3,6 +3,7 @@ module BVTProver.Helpers
 open System
 open System.Collections
 
+let unexpected () = failwith "unexpected_value"
 
 let reverse_some_tuple t =
     match t with

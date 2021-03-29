@@ -11,8 +11,9 @@ let (%%) a b = // python-like mod
         c
 let private MaxInt = uint32 Int32.MaxValue
         
+type IntVector = uint32*uint32 // value*bit_len
 type Term =
-    | Integer of uint32*uint32
+    | Integer of IntVector
     | BV of BitArray 
     | Var of string*uint32
     | Mult of Term*Term
@@ -39,7 +40,7 @@ and Formula =
     | Lt of Term*Term
     | SLt of Term*Term
     
-    | Ge of Term*Term // eliminate Ge/Gt
+    | Ge of Term*Term // todo eliminate Ge/Gt
     | SGe of Term*Term 
     | Gt of Term*Term
     | SGt of Term*Term
@@ -68,24 +69,25 @@ and Formula =
 
     static member (~-) t = Not(t)
     static member (=>) (t1, t2) = Implies(t1, t2)
+    static member (<=>) (t1, t2) = Iff(t1, t2)
 
                 
 
-let Int (N: uint32) = 
+let Int bit_len (N: uint32) = 
     if N > MaxInt then
         failwith "Supporting only 0 <= x <= Int32.MaxValue"
     else
-        BV (BitArray (BitConverter.GetBytes(N)))
+        Integer (N, bit_len)
+        
 let (|Int|_|) x =
     match x with
      | BV x -> Some (integer_of_bits x)
+     | Integer (x, d) -> Some x
      | _ -> None
 type Term with
-    static member Zero = Int 0u
-    static member One = Int 1u
-    static member Max = Int 255u
-    static member MaxNumber = 255u
-    static member Bits = 8u
+    static member ZeroM = Int 0u
+    static member OneM = Int 1u
+
     member private this.SmartInv =
         match this with
             | Inv t -> t
@@ -99,14 +101,13 @@ type Term with
             | Int 0u, t
             | t, Int 0u -> t
             | t1, t2 -> Plus(t1, t2)
-//    static member (/) (t1: Term, t2: Term) = Div(t1, t2)
-    
+
     static member (*) (t1, t2)  = Mult(t1, t2)
-    static member (*) (t1, t2)  = Mult(Int t1, t2)
+//    static member (*) (t1, t2)  = Mult(Int t1, t2)
     static member (===) (t1, t2)  = Equals(t1, t2)
     static member (<==) (t1, t2)  = Le(t1, t2)
-    static member (>==) (t1, t2)  = Ge(t1, t2)
-    static member (>!) (t1, t2)  = Gt(t1, t2)
+    static member (>==) (t1, t2)  = Le(t2, t1)
+    static member (>!) (t1, t2)  = Lt(t2, t1)
     static member (<!) (t1, t2)  = Lt(t1, t2)
 
     override this.ToString() =
@@ -122,10 +123,10 @@ type Term with
             | Ite (f, a, b) -> sprintf "if (%O) then (%O) else (%O)" f a b
             | _ -> failwith "unknown term"
     
-let (|AsMult|_|) e =
-     match e with
-     | Mult (a, b) -> Some (a, b)
-     | a -> Some(Int 1u, a)
+//let (|AsMult|_|) e =
+//     match e with
+//     | Mult (a, b) -> Some (a, b)
+//     | a -> Some(Int 1u, a)
 
 let (|AsLe|_|) e =
      match e with

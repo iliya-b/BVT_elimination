@@ -2,11 +2,14 @@ module BVTProver.Bvt
 
 open Formula
 open FormulaActions
-        
-let private getRules conclusion var =
+open Interpreter
+open MathHelpers
+let private getRules bit_len conclusion var =
+        let Int = Int bit_len
+        let _0 = Int 0u
+        let _1 = Int 1u
+        let MaxNumber = pown_2 bit_len - 1u
 
-        let _0 = Term.Zero
-        let _1 = Term.One
         let contains_var = term_contains var
         let first_term_bounded t y z = contains_var t && not (contains_var y) && not (contains_var z)
         let first_two_terms_bounded t1 t2 y = contains_var t1 && contains_var t2 && not (contains_var y)
@@ -47,12 +50,26 @@ let private getRules conclusion var =
             | Ge(Inv(t), y) when first_two_terms_bounded t t y ->
                 [ [t <== _0-y] ] // inv
             | Le(Mult(Int k1, ThisVar var), Mult(Int k2, ThisVar var)) ->
-                [ [var <== Int ((Term.MaxNumber+1u) * k1 / k2) ] ] // bothx4
+                [ [var <== Int ((MaxNumber+1u) * k1 / k2) ] ] // bothx4
             | _ -> []
      
+let Normalize bit_len x M literal =
+    // make literal of form: a < f(x) or f(x) <= a
+    let Int = Int bit_len
+    match literal with
+    | Le(FreeOf x a, f) ->
+        if M |= (a===Int 0u) then
+            [ a === Int 0u ]
+        else
+            [ (a - Int 1u) <! f ]
+    | Lt(f, FreeOf x b) ->
+        [ Not (b === Int 0u) ; f <== b - Int 1u ]
+    | t -> [t]
 
-let rec Rewrite var model cube = // normalization procedure
-               
+let rec Rewrite bit_len var model formula = // normalization procedure
+        let Rewrite = Rewrite bit_len
+        let getRules = getRules bit_len
+        
         let where_premises_hold premises =
           let f = List.collect (Rewrite var model) premises
           if model |= And f then                                      
@@ -61,18 +78,13 @@ let rec Rewrite var model cube = // normalization procedure
               None
  
                     
-        // todo: assert cube is cube
-        // todo: assert model |= cube
-        match cube with
+        // todo: assert model |= formula
+        match formula with
             | cube when not (formula_contains var cube) -> [cube]
-            | Le(_, Mult(Int _, ThisVar var))
-            | Ge(Mult(Int _, ThisVar var), _)
-            | Le(_, ThisVar var)
-            | Ge(ThisVar var, _)
+            | Lt(_, Mult(Int _, ThisVar var))
+            | Lt(_, ThisVar var)
             | Le(Mult(Int _, ThisVar var), _)
-            | Ge(_, Mult(Int _, ThisVar var)) 
-            | Le(ThisVar var, _)
-            | Ge(_, ThisVar var) -> [cube]
+            | Le(ThisVar var, _) -> [formula]
             | cube -> let applicable_rules = getRules cube var
                       let p = List.tryPick where_premises_hold applicable_rules
                       match p with

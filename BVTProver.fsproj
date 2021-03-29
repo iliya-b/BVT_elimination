@@ -16,6 +16,8 @@
         <Compile Include="Z3Patterns.fs" />
         <Compile Include="Formula.fs" />
         <Compile Include="FormulaActions.fs" />
+        <Compile Include="Substitution.fs" />
+        <Compile Include="Interpreter.fs" />
         <Compile Include="Bvt.fs" />
         <Folder Include="Tests" />
         <Compile Include="Rules\Rule1.fs" />

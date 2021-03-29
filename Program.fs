@@ -10,4 +10,5 @@ open BVTProver.Helpers
 
 
 [<EntryPoint>]
-let main argv = 0
+let main argv =
+    0
