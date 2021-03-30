@@ -14,8 +14,8 @@ let private int_func func x y =
             match x, y with
             | Integer (a, a_len), Integer (b, b_len) when a_len=b_len -> 
                 let value = func (uint64 a) (uint64 b)
-                let modulo = pown_2 a_len
-                Integer (uint32 value % modulo, a_len)
+                let modulo = uint64 (pown_2 a_len)
+                Integer (uint32 (value % modulo), a_len)
             | _ -> unexpected ()
             
 let private bool_func func x y =
@@ -46,10 +46,10 @@ let private expr_interpreter (model: IDictionary<string, uint32>) =
  
         formula_mapper
             (bool_func (=))
+            (bool_func (<=))
             (bool_func (<))
             (bool_func (<=))
-            (bool_func (>=))
-            (bool_func (>))
+            (bool_func (<))
             (bool_op (&&))
             (bool_op (||))
             (bool_op (fun a b -> (not a) || b))
@@ -70,7 +70,9 @@ let private expr_interpreter (model: IDictionary<string, uint32>) =
             extract
             (fun _ _if _else -> unexpected ()) // todo
             (int_func (/))
-            (function | Integer (a, s) -> Integer ( (pown_2 s) - a, s) | _ -> unexpected ())
+            (function | Integer (a, s) ->
+                          Integer ( (pown_2 s)  - a % (pown_2 s) , s)
+                      | _ -> unexpected ())
 
 
 let interpret_term model T =

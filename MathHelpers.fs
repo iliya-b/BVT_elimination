@@ -6,8 +6,7 @@ let rec gcd (a, b) =
     else
         gcd(b, a % b)
 
-let lcm (a, b) = // todo handle overflow or  
-    (a * b) / gcd (a, b)
+let lcm (a, b) = ( (uint64 a) * (uint64 b) |> uint32 ) / gcd (a, b)
 
 let lcmlist list = List.reduce (fun a b -> lcm(a, b)) list
 

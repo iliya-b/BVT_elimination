@@ -6,6 +6,12 @@ open MathHelpers
 open FormulaActions
 open Interpreter
 
+
+(*
+MbpZ (M,ψ ∧ {a_i<α_i×x} ∧ {β_j×x≤b_j}) =
+ ψ ∧ (aL ×(LCM div α_L) div LCM)<(b_U ×(LCM div β_U) ∧ ...
+*)
+
 type private BoundingInequality =
     | Upper of uint32*Term
     | Lower of uint32*Term

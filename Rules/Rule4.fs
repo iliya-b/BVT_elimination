@@ -5,6 +5,11 @@ open Formula
 open FormulaActions
 open Interpreter
 open MathHelpers
+
+
+(*
+MbpZ(M,φ∧(д<(f(x) div γ)×β)) = MbpZ(M,φ∧(д+1)×γ−1<f(x)×β∧(д<(2n−1) div γ))
+*)
 type private BoundingInequalityRule4 =
                 | Upper_ of Term*uint32*uint32*Term // (f(x) div d)*a < t
                 | Lower_ of Term*uint32*uint32*Term

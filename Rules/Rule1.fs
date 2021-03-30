@@ -3,6 +3,9 @@ open BVTProver
 open Formula
 open FormulaActions
 
+
+(* MbpZ(M,ψ∧ (βj×x≤bi))=ψ *)
+
 let private is_tautological x conjunct =    
     match conjunct with
         | Le(Mult(_, ThisVar x), _)  // A*x <= t

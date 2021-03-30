@@ -6,6 +6,11 @@ open FormulaActions
 open Interpreter
 open MathHelpers
 
+
+(*
+    MbpZ(M,φ∧(f(x) div δ ≤ d)) = MbpZ(M,φ∧(f(x)≤(d+1)×δ−1)∧(d<(2n−1) div δ))
+    MbpZ(M,φ∧((f(x)divδ)×α≤d))=MbpZ (M , φ ∧ ( f (x ) × α ≤ (d + 1) × δ − 1) ∧ (d < (2 −1) div δ ))
+*)
 type private BoundingInequalityRule3 =
     | Upper_ of Term*uint32*Term
     | Lower_ of Term*uint32*Term

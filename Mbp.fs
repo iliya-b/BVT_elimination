@@ -14,23 +14,17 @@ open Bvt
 let rec MbpZ (M: IDictionary<string, uint32>) (x: VarVector) cube =
     let MbpZ = MbpZ M x
     
-    
-    let (|Rule1|_|) = (|Rule1|_|) M x
-    let (|Rule2|_|) = (|Rule2|_|) M x
-    let (|Rule3|_|) = (|Rule3|_|) M x
-    let (|Rule4|_|) = (|Rule4|_|) M x
-
     let residual, open_conjuncts = List.partition (formula_contains (Var x)) cube
 
     if List.length residual = 0 then
         open_conjuncts
     else
-        let rewritten =
+        let rewritten = // explanations inside
             match residual with
-            | Rule1 _ -> residual
-            | Rule2 all_conjuncts -> apply_rule2 M x all_conjuncts
-            | Rule3 conjunct -> (apply_rule3 M x conjunct) @ (MbpZ (List.except [conjunct] residual)) 
-            | Rule4 conjunct -> (apply_rule4 M x conjunct) @ (MbpZ (List.except [conjunct] residual))
+            | Rule1 M x _ -> residual
+            | Rule2 M x all_conjuncts -> apply_rule2 M x all_conjuncts
+            | Rule3 M x conjunct -> (apply_rule3 M x conjunct) @ (MbpZ (List.except [conjunct] residual)) 
+            | Rule4 M x conjunct -> (apply_rule4 M x conjunct) @ (MbpZ (List.except [conjunct] residual))
             | cube -> List.map (x --> M) cube
 
         open_conjuncts @ rewritten

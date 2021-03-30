@@ -50,8 +50,8 @@ let rec term_contains var term =
     | Plus (t1, t2) -> contains t1 || contains t2
     | Div (t1, t2) -> contains t1 || contains t2
     | Extract (t, _, _) -> contains t
-    | Inv (t) -> contains t
-    | Int _
+    | Inv t -> contains t
+    | Integer _
     | Var _ -> false
     | _ -> failwith "unexpected term"
 
@@ -69,8 +69,8 @@ let rec formula_contains var expr =
     | Exists (_, t)
     | Not t -> contains t
     | _ -> false
-let as_term = function | Term t -> t | _ -> failwith "unexpected formula, expected: Term"
-let as_formula = function | Formula t -> t | _ -> failwith "unexpected term, expected: Formula"
+let as_term = function | Term t -> t | _ -> unexpected ()
+let as_formula = function | Formula t -> t | _ -> unexpected ()
 
 
 let z3_mapper e =

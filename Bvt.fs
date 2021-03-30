@@ -9,7 +9,6 @@ let private getRules conclusion x =
         let Int = Int bit_len
         let _0 = Int 0u
         let _1 = Int 1u
-        let MaxNumber = pown_2 bit_len - 1u
 
         let var = Var x
         let contains_var = term_contains var
@@ -45,7 +44,8 @@ let private getRules conclusion x =
             | Le(y, Inv(t)) when first_two_terms_bounded t t y ->
                 [ [t <== _0-y] ] // inv
             | Le(Mult(Int k1, ThisVar x), Mult(Int k2, ThisVar x)) ->
-                [ [var <== Int ((MaxNumber+1u) * k1 / k2) ] ] // bothx4
+                let modulo = pown_2 bit_len
+                [ [var <== Int ((modulo) * k1 / k2 % (modulo)) ] ] // bothx4
             | _ -> []
      
      
@@ -65,27 +65,30 @@ let Normalize x M literal =
         [ Not (b === Int 0u) ; f <== b - Int 1u ]
     | t -> [t]
 
+
 let rec Rewrite var model formula = // normalization procedure
-    
     let where_premises_hold premises =
         let f = List.collect (Rewrite var model) premises
-        if model |= And f then                                      
+        if model |= And f then
             Some f
         else
             None
                  
     // todo: assert model |= formula
     match formula with
-    | cube when not (formula_contains (Var var) cube) -> [cube]
+    | formula when not (formula_contains (Var var) formula) -> [formula]
     | Lt(_, Mult(Int _, ThisVar var))
     | Lt(_, ThisVar var)
     | Le(Mult(Int _, ThisVar var), _)
-    | Le(ThisVar var, _) -> [formula]
-    | cube ->
-        let applicable_rules = getRules cube var
+    | Le(ThisVar var, _)
+    
+    | Lt(Mult(Int _, ThisVar var), _)
+    | Lt(ThisVar var, _)
+    | Le(_, Mult(Int _, ThisVar var))
+    | Le(_, ThisVar var) -> [formula]
+    | f ->
+        let applicable_rules = getRules f var
         let p = List.tryPick where_premises_hold applicable_rules
         match p with
         | Some conjuncts -> conjuncts
         | None -> [False]
-                                      
-                                          

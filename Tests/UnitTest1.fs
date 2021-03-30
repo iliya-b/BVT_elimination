@@ -52,26 +52,22 @@ let TestMbpInterpolatesTheFormula () =
     let a = ("a", bit_len)
     let b = ("b", bit_len)
     let Int = Int bit_len
-    
-    let ctx = new Context();
-    
+        
     let cube = [ Var a <! (Int 4u) * Var x ; (Int 6u) * Var x <== Var b ] // a < 4x ∧ 6x < b
+    let cube = List.collect (Normalize x model) cube
+    
     let mbp = MbpZ model x cube
     Assert.False (formula_contains (Var x) (And mbp))
     
     Assert.AreEqual(3, mbp.Length)
     Assert.True(List.contains (Le (Var ("a", 8u), Int 85u)) mbp)
-    Assert.True(List.contains (Le (Var ("b", 8u), Int 127u)) mbp)
-    Assert.True(List.contains (Lt (Div (Mult (Var ("a", 8u), Int 3u), Int 12u),Div (Mult (Var ("a", 8u),Int 3u), Int 12u))) mbp)
-    // todo: not rely on order of arguments in commuting operations
-    printfn "%A" mbp
-    
+    Assert.True(List.contains (Le (Var ("b", 8u), Int 127u)) mbp)    
     // check that MBP⇒∃x.f
-    let expected = Implies(And mbp, Exists(Var x, And cube))
-    let solver = ctx.MkSolver()
-    let not_expected = z3fy_expression ctx (Formula (Not expected))
-    solver.Add(not_expected :?> BoolExpr)
-    Assert.AreEqual(solver.Check(), Status.UNSATISFIABLE)
+    let expected_1 = Implies(And mbp, Exists(Var x, And cube))
+
+    Assert.True (is_tautology expected_1)
+    Assert.AreEqual(["((a*3) div 12)<((b*2) div 12)"; "a<=85"; "b<=127"], List.map (fun x -> x.ToString()) mbp)
+    
     
 [<Test>]
 let TestMbpKeepsFreeConjunct () =

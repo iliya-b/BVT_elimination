@@ -1,6 +1,7 @@
 module BVTProver.Formula
 open System
 open Helpers
+open MathHelpers
 
 let private MaxInt = uint32 Int32.MaxValue
 
@@ -59,8 +60,8 @@ and Formula =
     static member (<=>) (t1, t2) = Iff (t1, t2)
 
 let Int bit_len N = 
-    if N > MaxInt then
-        failwith "Supporting only 0 <= x <= Int32.MaxValue"
+    if N > MaxInt || N >= (pown_2 bit_len) || N < 0u then
+        failwith "Overflow"
     else
         Integer (N, bit_len)
         
@@ -69,8 +70,8 @@ let (|Int|_|) x =
      | Integer (x, _) -> Some x
      | _ -> None
 type Term with
-    static member ZeroM = Int 0u
-    static member OneM = Int 1u
+    static member ZeroM bits = Int bits 0u
+    static member OneM bits = Int bits 1u
 
     member private this.SmartInv =
         match this with
@@ -97,7 +98,7 @@ type Term with
     override this.ToString() =
         match this with 
             | Var (name, size) -> sprintf "%s" name
-            | Mult (t1, t2) -> sprintf "%O*%O" t1 t2
+            | Mult (t1, t2) -> sprintf "(%O*%O)" t1 t2
             | Plus (t1, Inv t2) -> sprintf "(%O-%O)" t1 t2
             | Plus (t1, t2) -> sprintf "(%O+%O)" t1 t2
             | Inv t -> sprintf "-(%O)" t
