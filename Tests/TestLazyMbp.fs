@@ -20,47 +20,53 @@ let Setup () =
 
 
 [<Test>]
-let TestLAzy () =
+let TestLazyMbpProducesAnApproximation () =
     let bit_len = 8u
-    let a, b, x = Var ("a", bit_len), Var ("b", bit_len), Var ("x", bit_len)
+    let a, b, x = ("a", bit_len), ("b", bit_len), ("x", bit_len)
     let Zero = Int 1u 0u
-    let f = [a <== x ; x <! b; Extract(x, 7, 7)===Zero]
+    let f = [Var a <== Var x ; Var x <! Var b; Extract(Var x, 7, 7)===Zero]
     let M = [ "x", 64u ; "a", 199u ; "b", 200u ] |> dict
-    let lazy_mbp = LazyMbp M x bit_len f
-    
-    let naive_mbp = List.map (substitute_formula (dict ["x", Int 8u 64u])) f
-    Assert.False(is_tautology (And lazy_mbp <=> And naive_mbp)) // check that at least one rule is used
-    Assert.True(is_tautology (And lazy_mbp => Exists(x, And f)))
-    
+    let lazy_mbp = LazyMbp M x f
     printfn "%O" (And lazy_mbp)
 
-[<Test>]
-let TestMbpOnBenchmark() =
-    let ctx = new Context()
-    let file = "/Volumes/MyPassport/bvt/samples/bench_10.smt2.txt"
+    let naive_mbp = List.map (substitute_formula (dict ["x", Int 8u 64u])) f
     
-    let benchmark_formulae = Array.take 10 (ctx.ParseSMTLIB2File file)
-    let to_formula = function | Formula f -> f | _ -> unexpected ()
+    (* check that at least one rule is used *)
+    Assert.False (is_tautology (And lazy_mbp <=> And naive_mbp)) 
+    Assert.True (is_tautology (And lazy_mbp => Exists(Var x, And f)))
     
-    
-    let test = ctx.MkBVULE (ctx.MkBV(8u, 3u), ctx.MkBV(2u, 3u))
-    
-    let our_formulae = Array.map (convert_z3>>to_formula) benchmark_formulae
-    
-    
-    let convert_const (z3_const: KeyValuePair<FuncDecl, Expr>) =
-        let key, value = z3_const.Key, z3_const.Value :?> BitVecNum
-        key.Name.ToString(), value.UInt
-        
-    let createMbp f =
-        let model = get_model f
-        Assert.True model.IsSome
-        let model = model.Value.Consts |> (Seq.map convert_const) |> dict
-        model
-//        let mbp = LazyMbp model x f
-//        mbp
-    let m = (Array.map createMbp our_formulae)
-    Assert.True true
+
+
+//[<Test>]
+//let TestMbpOnBenchmark() =
+//    let ctx = new Context()
+//
+//    let has_lia_Literal (file: string) = 
+//        let file = "/Volumes/MyPassport/bvt/QF_BV/" + ((file.Split ":").[0])
+//        
+//        let benchmark_formulae = (ctx.ParseSMTLIB2File file)
+//        let to_formula = function | Formula f -> f | _ -> unexpected ()
+//        
+//        let ignore_exception f e =
+//            try
+//                f e
+//            with
+//            | :? System.Exception as e -> False
+//            
+//        let our_formulae = Array.map ( ignore_exception (convert_z3>>to_formula)) benchmark_formulae
+//        
+//        
+//        let convert_const (z3_const: KeyValuePair<FuncDecl, Expr>) =
+//            let key, value = z3_const.Key, z3_const.Value :?> BitVecNum
+//            Var (key.Name.ToString(), value.SortSize), Integer (value.UInt, value.SortSize)
+//        
+//        Array.tryFind is_LIA_formula our_formulae
+//    
+//    let lia = Array.ofSeq (Seq.take 100 (Seq.choose has_lia_Literal (files.Split "\n")))
+//    
+//    Assert.True true
+
+//    Assert.True true
 
 [<Test>]
 let TestBenchmarkConverting() =

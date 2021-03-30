@@ -5,14 +5,13 @@ open Formula
 open FormulaActions
 open Interpreter
 open MathHelpers
-
 type private BoundingInequalityRule4 =
                 | Upper_ of Term*uint32*uint32*Term // (f(x) div d)*a < t
                 | Lower_ of Term*uint32*uint32*Term
 
 let private (|ConstDivision|_|) x expr =
     match expr with
-    | Div (Contains x t, Int d) -> Some(t, d)
+    | Div (Contains (Var x) t, Int d) -> Some(t, d)
     | _ -> None
 
 let private condition_upper bit_len f a b d =
@@ -37,13 +36,13 @@ let private (|BoundWithDivision|_|) M x bit_len conjunct =
          -> Some (Lower_(f, y, b, g))
         | _ -> None
 
-let (|Rule4|_|) M name bit_len cube =
-    let x = Var (name, bit_len)
+let (|Rule4|_|) M x cube =
+    let _, bit_len = x
     match some_matches ((|BoundWithDivision|_|) M x bit_len ) cube with
         | Some ((BoundWithDivision M x bit_len _) as conjunct)  -> Some conjunct
         | _ -> None
-let apply_rule4 M name bit_len conjunct =
-    let x = Var (name, bit_len)
+let apply_rule4 M x conjunct =
+    let _, bit_len = x
     let inequality =
         match conjunct with
          | BoundWithDivision M x bit_len t -> t

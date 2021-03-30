@@ -1,8 +1,5 @@
 module BVTProver.Substitution
-
-open System.Collections
 open System.Collections.Generic
-open System.Net.Http
 open BVTProver
 open Formula
 open FormulaActions
@@ -53,7 +50,7 @@ let private expr_substitute (model: IDictionary<string, Term>) =
             (bool (fun (a, b) -> [a; b] |> Or))
             (bool Implies)
             (bool Iff)
-            (fun a b -> unexpected ()) // cannot interpret \exists
+            (fun _ _ -> unexpected ()) // cannot substitute \exists
             (function Formula f -> f |> Not |> Formula | _ -> unexpected ())
             (Formula True)
             (Formula False)
@@ -67,7 +64,7 @@ let private expr_substitute (model: IDictionary<string, Term>) =
             (fun bits size -> (bits, size) |> Term.Integer |> Term)
             zero_extend
             extract
-            (fun (Formula condition) (Term _if) (Term _else) -> (condition, _if, _else) |> Ite |> Term)
+            (fun _ _ _ -> unexpected ())
             (operation Div)
             (function Term f -> f |> Inv |> Term | _ -> unexpected ())
             
@@ -78,3 +75,10 @@ let substitute_formula model F =
     match res with
     | Formula F -> F
     | _ -> unexpected ()
+
+
+
+(* replace only the x variable with corresponding value in the model *)
+let inline (-->) (x: VarVector) (model: IDictionary<string, uint32>) =
+    let var_name, bit_len = x
+    substitute_formula <| (dict <| [var_name, Int bit_len model.[var_name]])

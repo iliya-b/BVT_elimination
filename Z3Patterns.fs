@@ -2,10 +2,9 @@ module BVTProver.Z3Patterns
 
 open System
 open System.Collections
-open System.ComponentModel
 open Microsoft.Z3
 open Helpers
-open MathHelpers
+
 
 let get_bvt_args (expr: Expr) =
     match expr.Args.[0], expr.Args.[1] with
@@ -43,6 +42,11 @@ let (|ZMinus|_|) (expr: Expr) = if expr.IsBVSub then get_bvt_args expr else None
                   
 let (|ZPlus|_|) (expr: Expr) = if expr.IsBVAdd then get_bvt_args expr else None
 let (|ZMult|_|) (expr: Expr) = if expr.IsBVMul then get_bvt_args expr else None
+let (|ZUDiv|_|) (expr: Expr) = if expr.IsBVUDiv then get_bvt_args expr else None
+let (|ZSDiv|_|) (expr: Expr) = if expr.IsBVSDiv then get_bvt_args expr else None
+let (|ZURem|_|) (expr: Expr) = if expr.IsBVURem then get_bvt_args expr else None
+let (|ZSRem|_|) (expr: Expr) = if expr.IsBVSRem then get_bvt_args expr else None
+let (|ZSMod|_|) (expr: Expr) = if expr.IsBVSMod then get_bvt_args expr else None
 let (|ZBVOr|_|) (expr: Expr) = if expr.IsBVOR then get_bvt_args expr else None
 let (|ZBVAnd|_|) (expr: Expr) = if expr.IsBVAND then get_bvt_args expr else None
 let (|ZBVShL|_|) (expr: Expr) = if expr.IsBVShiftLeft then get_bvt_args expr else None
@@ -51,8 +55,8 @@ let (|ZBVZeroEx|_|) (expr: Expr) = if expr.IsBVZeroExtension then Some (expr.Arg
 let (|ZExtract|_|) (expr: Expr) = if expr.IsBVExtract then Some (expr.Args.[0] :?> BitVecExpr, expr.FuncDecl.Parameters.[0].Int, expr.FuncDecl.Parameters.[1].Int) else None
 
 let (|ZVar|_|) (expr: Expr) =
-    if expr.IsConst || expr.IsVar then
-        Some (expr.ToString().Replace("|", ""), (expr :?> BitVecExpr).SortSize)
+    if (expr.IsConst || expr.IsVar) && not expr.IsBool then
+           Some (expr.ToString().Replace("|", ""), (expr :?> BitVecExpr).SortSize)
     else
         None
 let (|ZInt|_|) (expr: Expr) =

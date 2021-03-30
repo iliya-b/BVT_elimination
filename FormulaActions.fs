@@ -5,7 +5,7 @@ open BVTProver
 open Formula
 open Z3Patterns
 open Microsoft.Z3
-
+open Helpers
 open Continuations
 
 type Expression =
@@ -24,20 +24,24 @@ let rec is_LIA_term term =
      | Plus (a, b)  -> (is_LIA_term a) && (is_LIA_term b)
      | Inv a -> is_LIA_term a
      | Extract _ -> false
+     | BV _ -> false
+     | _ -> false
 let rec is_LIA_formula formula =
     match formula with
     | And args
     | Or args -> List.forall is_LIA_formula args
     | Equals (t1, t2)
     | Le (t1, t2)
+    | SLe (t1, t2)
     | Lt (t1, t2)
-    | Ge (t1, t2)
-    | Gt (t1, t2) -> is_LIA_term t1 && is_LIA_term t2
+    | SLt (t1, t2) -> is_LIA_term t1 && is_LIA_term t2
     | Implies (t1, t2)
     | Iff (t1, t2) -> is_LIA_formula t1 && is_LIA_formula t2
     | Exists (_, t)
     | Not t -> is_LIA_formula t
-    | _ -> false
+    | False
+    | True -> true
+
 
 let rec term_contains var term =
     let contains = term_contains var
@@ -46,7 +50,7 @@ let rec term_contains var term =
     | Mult (t1, t2)
     | Plus (t1, t2) -> contains t1 || contains t2
     | Div (t1, t2) -> contains t1 || contains t2
-    | Extract (t, a, b) -> contains t
+    | Extract (t, _, _) -> contains t
     | Inv (t) -> contains t
     | Int _
     | Var _ -> false
@@ -60,9 +64,7 @@ let rec formula_contains var expr =
     | Or args -> List.exists contains args
     | Equals (t1, t2)
     | Le (t1, t2)
-    | Lt (t1, t2)
-    | Ge (t1, t2)
-    | Gt (t1, t2) -> term_contains t1 || term_contains t2
+    | Lt (t1, t2) -> term_contains t1 || term_contains t2
     | Implies (t1, t2)
     | Iff (t1, t2) -> contains t1 || contains t2
     | Exists (_, t)
@@ -81,7 +83,7 @@ let z3_mapper e =
     let unary_op op (t: Expr) =  Unary ((fun e1 -> Term (op (as_term e1))), t)
     let And (a, b) = And [a ; b]
     let Or (a, b) = Or [a ; b] // we are not usually given big conjunctions as input
-    
+
     match e with
         | ZEquals (t1, t2) -> bin_predicate Equals t1 t2
         | ZLe (t1, t2) -> bin_predicate Le t1 t2
@@ -98,6 +100,11 @@ let z3_mapper e =
         | ZFalse -> Const (Formula False)
         | ZVar (name, s) -> Const (Term (Var (name, s)))
         | ZMult (t1, t2) ->  bin_op Mult t1 t2  
+        | ZUDiv (t1, t2) ->  bin_op Div t1 t2  
+        | ZSDiv (t1, t2) ->  bin_op Div t1 t2  // todo
+        | ZURem (t1, t2) ->  bin_op (fun (a, b) -> a - (Div(a, b) * b)) t1 t2  
+//        | ZSRem (t1, t2) ->  // todo
+//        | ZSMod (t1, t2) ->  // todo
         | ZPlus (t1, t2) -> bin_op Plus t1 t2  
         | ZBVAnd (t1, t2) -> bin_op BitAnd t1 t2  
         | ZBVOr (t1, t2) -> bin_op BitOr t1 t2  
@@ -123,13 +130,9 @@ let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or
     | Formula f ->
         match f with  
         | Equals (t1, t2) -> bin_predicate _Equals t1 t2
-        | Ge (t2, t1)
         | Le (t1, t2) -> bin_predicate _Le t1 t2
-        | Gt (t2, t1)
         | Lt (t1, t2) -> bin_predicate _Lt t1 t2
-        | SGe (t2, t1)
         | SLe (t1, t2) -> bin_predicate _SLe t1 t2
-        | SGt (t2, t1)
         | SLt (t1, t2) -> bin_predicate _SLt t1 t2
         | And [a ; b] -> bin_bunch _And a b
         | Or [a ; b] -> bin_bunch _Or a b
@@ -137,6 +140,7 @@ let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or
         | And [f] -> unary_bool (fun x -> x) f
         | And (t1::tail) -> bin_bunch _And t1 (And tail)
         | Or  (t1::tail) -> bin_bunch _Or t1 (Or tail)
+        | And [] | Or [] -> failwith "Empty And/Or"
         | Iff (t1, t2) -> bin_bunch _Iff t1 t2
         | Implies (t1, t2) -> bin_bunch _Implies t1 t2
         | Not (t) ->  unary_bool _Not t
@@ -160,10 +164,16 @@ let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or
         | ZeroEx (t, d) -> unary_op (fun t -> _ZeroEx t d) t
         | Extract (t, a, b) -> unary_op (fun t -> _Extract t a b) t
         | Ite(t, a, b) -> Triple ((fun c e1 e2 -> _Ite c e1 e2), Formula t, Term a, Term b)
-        | BV t -> failwith "should be used"
+        | BV _ -> failwith "BV should not be used"
         
         
-let convert_z3 = fold z3_mapper (fun x -> x)
+let convert_z3 expr =
+    let fold = fold z3_mapper (fun x -> x)
+    let map = List.ofArray >> (List.map (fun e -> e:>Expr |> fold |> as_formula))
+    match expr with  // expect a cube or a literal
+    | ZCONJ args -> args |> map |> And |> Formula
+    | ZDISJ args -> args |> map |> Or |> Formula
+    | expr -> fold expr
 let z3_formula_mapper (ctx: Context) =
         let as_bvt ((a, b): Expr*Expr) = (a :?> BitVecExpr, b :?> BitVecExpr)
         let as_bool ((a, b): Expr*Expr) = (a :?> BoolExpr, b :?> BoolExpr)
@@ -212,8 +222,8 @@ let tuplify_list2 list =
 let (|Contains|_|) x (e: Term) =
     if term_contains x e then Some(e) else None
 
-let (|FreeOf|_|) x (e: Term) =
-    if not (term_contains x e) then Some(e) else None
+let (|FreeOf|_|) (x: VarVector) (e: Term) =
+    if not (term_contains (Var x) e) then Some(e) else None
 
 
 let some_matches (|Pattern|_|) expressions =
@@ -221,9 +231,9 @@ let some_matches (|Pattern|_|) expressions =
 let each_matches (|Pattern|_|) expressions =
          List.forall (function | Pattern _ -> true | _ -> false) expressions
         
-let (|ThisVar|_|) x (e: Term) =
+let (|ThisVar|_|) (x: VarVector) (e: Term) =
     match e with
-    | t when t = x -> Some()
+    | t when t = (Var x) -> Some()
     | _ -> None
 
 
@@ -236,7 +246,11 @@ let (|+) (|Pattern1|_|) (|Pattern2|_|) =
     
     
     
-
+let get_bit_length term =
+    match term with
+    | Var (_, s)
+    | Integer(_, s) -> s
+    | _ -> unexpected ()
     
 
 let private get_model_z3 (ctx: Context) (expr: Expr) =    

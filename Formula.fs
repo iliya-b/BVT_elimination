@@ -10,12 +10,14 @@ let (%%) a b = // python-like mod
     else
         c
 let private MaxInt = uint32 Int32.MaxValue
-        
+
 type IntVector = uint32*uint32 // value*bit_len
+type VarVector = string*uint32
+
 type Term =
     | Integer of IntVector
     | BV of BitArray 
-    | Var of string*uint32
+    | Var of VarVector
     | Mult of Term*Term
     | Plus of Term*Term
     | Inv of Term
@@ -39,12 +41,6 @@ and Formula =
     | SLe of Term*Term
     | Lt of Term*Term
     | SLt of Term*Term
-    
-    | Ge of Term*Term // todo eliminate Ge/Gt
-    | SGe of Term*Term 
-    | Gt of Term*Term
-    | SGt of Term*Term
-    
     | Equals of Term*Term
     | True
     | False
@@ -60,18 +56,15 @@ and Formula =
             | Equals (t1, t2) -> sprintf "%O=%O" t1 t2
             | Le (t1, t2) ->  sprintf "%O<=%O" t1 t2
             | Lt (t1, t2) ->  sprintf "%O<%O" t1 t2
-            | Ge (t1, t2) ->  sprintf "%O>=%O" t1 t2
-            | Gt (t1, t2) ->  sprintf "%O>%O" t1 t2
             | Not t -> sprintf "Not(%O)" t
             | Implies (t1, t2) -> sprintf "%O => %O" t1 t2
             | Iff (t1, t2) -> sprintf "%O <=> %O" t1 t2
+            | _ -> unexpected ()
 
 
     static member (~-) t = Not(t)
     static member (=>) (t1, t2) = Implies(t1, t2)
     static member (<=>) (t1, t2) = Iff(t1, t2)
-
-                
 
 let Int bit_len (N: uint32) = 
     if N > MaxInt then
@@ -81,8 +74,8 @@ let Int bit_len (N: uint32) =
         
 let (|Int|_|) x =
     match x with
+     | Integer (x, _) -> Some x
      | BV x -> Some (integer_of_bits x)
-     | Integer (x, d) -> Some x
      | _ -> None
 type Term with
     static member ZeroM = Int 0u
@@ -103,7 +96,7 @@ type Term with
             | t1, t2 -> Plus(t1, t2)
 
     static member (*) (t1, t2)  = Mult(t1, t2)
-//    static member (*) (t1, t2)  = Mult(Int t1, t2)
+
     static member (===) (t1, t2)  = Equals(t1, t2)
     static member (<==) (t1, t2)  = Le(t1, t2)
     static member (>==) (t1, t2)  = Le(t2, t1)
@@ -123,23 +116,3 @@ type Term with
             | Ite (f, a, b) -> sprintf "if (%O) then (%O) else (%O)" f a b
             | _ -> failwith "unknown term"
     
-//let (|AsMult|_|) e =
-//     match e with
-//     | Mult (a, b) -> Some (a, b)
-//     | a -> Some(Int 1u, a)
-
-let (|AsLe|_|) e =
-     match e with
-        | Le(t1, t2) 
-        | Ge(t2, t1) -> Some(t1, t2)
-//        | Lt(t1, t2)
-//        | Gt(t2, t1) -> Some(t1+(Int 1), t2) // overflow possible
-        | _ -> None
-
-
-let (|AsLt|_|) e =
-     match e with
-        | Lt(t1, t2) 
-        | Gt(t2, t1) -> Some(t1, t2)
-        | _ -> None
-

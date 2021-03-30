@@ -13,16 +13,16 @@ let Setup () =
 [<Test>]
 let TestRule2ByPassesWhenLcmOverflows () =
     let bit_len = 8u
-    let x, a, b = Var ("x", bit_len), Var ("a", bit_len), Var ("b", bit_len)
+    let x, a, b = ("x", bit_len), ("a", bit_len), ("b", bit_len)
     let Int = Int bit_len
     
     let model = [ "a", 0u
                   "b", 200u
                   "x", 1u ] |> dict
     
-    let cube = [ a <! (Int 99u)*x ; (Int 100u)*x <== b ]
+    let cube = [ Var a <! (Int 99u) * Var x ; (Int 100u) * Var x <== Var b ]
     match cube with
-    | Rule2 model "x" bit_len bounds -> Assert.Fail()
+    | Rule2 model x bounds -> Assert.Fail()
     | t -> ignore t
 
     
@@ -30,23 +30,23 @@ let TestRule2ByPassesWhenLcmOverflows () =
 let TestRule3 () =
     let bit_len = 8u
     let Int = Int bit_len
-    let x, a, b = Var ("x", 8u), Var ("a", 8u), Var ("b", 8u)
+    let x, a, b = ("x", 8u), ("a", 8u), ("b", 8u)
     
     let model = [ "a", 0u
                   "b", 4u
                   "x", 1u ] |> dict
     let f = x
-    let free_conjunct = (Int 100u)*a <== b
-    let upper_bound = Div (f, Int 3u) <== b
+    let free_conjunct = (Int 100u) * Var a <== Var b
+    let upper_bound = Div (Var f, Int 3u) <== Var b
     let cube = [ upper_bound; free_conjunct ]
     
     match cube with
-    | Rule3 model "x" bit_len conjunct ->
+    | Rule3 model x conjunct ->
         Assert.AreEqual(conjunct, upper_bound)
-        let rewritten = apply_rule3 model "x" bit_len conjunct
+        let rewritten = apply_rule3 model x conjunct
 
-        Assert.True(List.contains (Le(b, Div(Int 255u, Int 3u))) rewritten)
-        Assert.True(List.contains (Le(x, (Mult(Plus(b, (Int 1u)), Int 3u)-(Int 1u)))) rewritten)
+        Assert.True(List.contains (Le(Var b, Div(Int 255u, Int 3u))) rewritten)
+        Assert.True(List.contains (Le(Var x, (Mult(Plus(Var b, (Int 1u)), Int 3u)-(Int 1u)))) rewritten)
     
     | _ -> Assert.Fail()
     

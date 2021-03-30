@@ -12,7 +12,7 @@ type private BoundingInequalityRule3 =
 
 let private (|ConstDivision|_|) x expr =
     match expr with
-    | Div (Contains x t, Int d) -> Some(t, d)
+    | Div (Contains (Var x) t, Int d) -> Some(t, d)
     | _ -> None
 
 let private (|BoundWithDivision|_|) M x bit_len conjunct =
@@ -24,16 +24,16 @@ let private (|BoundWithDivision|_|) M x bit_len conjunct =
         | _ -> None
 
 
-let (|Rule3|_|) M name bit_len cube =
-    let x = Var (name, bit_len)
+let (|Rule3|_|) M x cube =
+    let _, bit_len = x
     match some_matches ((|BoundWithDivision|_|) M x bit_len) cube with
         | Some ((BoundWithDivision M x bit_len _) as conjunct)  -> Some conjunct
         | _ -> None
-let apply_rule3 M name bit_len conjunct =
+let apply_rule3 M x conjunct =
+    let _, bit_len = x
     let MaxNumber = pown_2 bit_len - 1u
     let Int = Int bit_len
     let One = Int 1u
-    let x = Var (name, bit_len)
 
     let inequality =
         match conjunct with

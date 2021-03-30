@@ -5,13 +5,12 @@ open FormulaActions
 
 let private is_tautological x conjunct =    
     match conjunct with
-        | AsLe(Mult(_, ThisVar x), _)  // A*x <= t
-        | AsLe(Mult(ThisVar x, _), _)
-        | AsLe(ThisVar x, _) -> true
+        | Le(Mult(_, ThisVar x), _)  // A*x <= t
+        | Le(Mult(ThisVar x, _), _)
+        | Le(ThisVar x, _) -> true
         | _ -> false
                            
-let (|Rule1|_|) M x bit_len cube =
-    let x = Var (x, bit_len)
+let (|Rule1|_|) _ x cube =
     if List.forall (is_tautological x) cube then
         Some cube
     else

@@ -16,21 +16,21 @@ type RuleType = All | Any
 let private (|Bounds|_|) x conjunct = 
     
     match conjunct with
-        | AsLe ( Mult(ThisVar x, Int d), FreeOf x t)
-        | AsLe ( Mult(Int d, ThisVar x), FreeOf x t)        
+        | Le ( Mult(ThisVar x, Int d), FreeOf x t)
+        | Le ( Mult(Int d, ThisVar x), FreeOf x t)        
          -> Some (Upper(d, t)) // β×x ≤ b
-        | AsLe (ThisVar x, FreeOf x t) -> Some (Upper(1u, t)) // x ≤ b
+        | Le (ThisVar x, FreeOf x t) -> Some (Upper(1u, t)) // x ≤ b
         
-        | AsLt (FreeOf x t, Mult (Int d, ThisVar x))
-        | AsLt (FreeOf x t, Mult (ThisVar x, Int d))
+        | Lt (FreeOf x t, Mult (Int d, ThisVar x))
+        | Lt (FreeOf x t, Mult (ThisVar x, Int d))
          -> Some (Lower(d, t)) // a < α×x
          
-        | AsLt (FreeOf x t, ThisVar x) -> Some (Lower(1u, t)) // a < x
+        | Lt (FreeOf x t, ThisVar x) -> Some (Lower(1u, t)) // a < x
          
         | _ -> None
 
-let (|Rule2|_|) (M: IDictionary<string, uint32>) var_name bit_len cube =
-    let x = Var (var_name, bit_len)
+let (|Rule2|_|) (M: IDictionary<string, uint32>) x cube =
+    let var_name, bit_len = x
     let MaxNumber = pown_2 bit_len - 1u
     let Int = Int bit_len
 
@@ -62,10 +62,10 @@ let (|Rule2|_|) (M: IDictionary<string, uint32>) var_name bit_len cube =
     else
         None
 
-let apply_rule2 M var_name bit_len cube =
+let apply_rule2 M x cube =
+    let _, bit_len = x
     let MaxNumber = pown_2 bit_len - 1u
     let Int = Int bit_len
-    let x = Var (var_name, bit_len)
     
     let bounds = cube |> (List.choose ((|Bounds|_|) x))
     let lcm = bounds |> (List.map (BoundingInequality.tuplify >> fst)) |> lcmlist

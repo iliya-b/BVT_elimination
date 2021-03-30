@@ -1,5 +1,4 @@
 module BVTProver.Interpreter
-open System.Collections
 open System.Collections.Generic
 open BVTProver
 open Helpers
@@ -54,7 +53,7 @@ let private expr_interpreter (model: IDictionary<string, uint32>) =
             (bool_op (||))
             (bool_op (fun a b -> (not a) || b))
             (bool_op (=))
-            (fun a b -> unexpected ()) // cannot interpret \exists
+            (fun _ _ -> unexpected ()) // cannot interpret \exists
             (function Bool b -> Bool (not b) | _ -> unexpected ())
             (Bool true)
             (Bool false)
@@ -68,9 +67,9 @@ let private expr_interpreter (model: IDictionary<string, uint32>) =
             (fun bits size -> Integer (bits, size))
             zero_extend
             extract
-            (fun condition _if _else -> unexpected ()) // todo
+            (fun _ _if _else -> unexpected ()) // todo
             (int_func (/))
-            (fun (Integer (a, s)) -> Integer (((int s) |> (pown 2) |> uint32)-a, s))
+            (function | Integer (a, s) -> Integer ((s |> int |> pown 2 |> uint32) - a, s) | _ -> unexpected ())
 
 
 let interpret_term model T =
