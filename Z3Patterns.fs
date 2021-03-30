@@ -157,9 +157,3 @@ let (|ZForAll|_|) (expr: Expr) =
     match expr with
     | :? Quantifier as expr when expr.IsUniversal -> get_bool_args expr
     | _ -> None
-
-
-//type ZOperation =
-//    | Binary of Expr*Expr
-//    | Unary of Expr
-//    | Mult of Expr list

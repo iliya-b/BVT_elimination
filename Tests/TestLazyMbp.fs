@@ -71,7 +71,7 @@ let TestLazyMbpProducesAnApproximation () =
 [<Test>]
 let TestBenchmarkConverting() =
     let ctx = new Context()
-    let file = "/Volumes/MyPassport/bvt/samples/bench_10.smt2.txt"
+    let file = "./bvt/samples/bench_10.smt2.txt"
     
     let benchmark_formulae = ctx.ParseSMTLIB2File(file)
     let our_formulae = Array.map (convert_z3>>(z3fy_expression ctx)) benchmark_formulae

@@ -11,6 +11,7 @@
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=5f3f2e82_002D19da_002D4197_002D909c_002Da07d3802ba3e/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="TestMbpOnBenchmark" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
     &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.TestLazyMbp.TestLazyMbpProducesAnApproximation&lt;/TestId&gt;
+    &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.TestLazyMbp.TestBenchmarkConverting&lt;/TestId&gt;
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
 	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=7195d832_002D1737_002D439b_002D87a1_002D587123a2ff8b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
