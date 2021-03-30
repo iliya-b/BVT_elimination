@@ -107,3 +107,4 @@ type Term with
             | Ite (f, a, b) -> sprintf "if (%O) then (%O) else (%O)" f a b
             | _ -> failwith "unknown term"
     
+

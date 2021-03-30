@@ -102,9 +102,6 @@ let apply_rule2 M x cube =
     let c3 = cube
                 |> (List.choose ((|Bounds|_|) x))
                 |> (List.choose make_conjunct2)
-    let Div (a, b) =
-        match b with
-        | Integer (1u, _) -> a
-        | b -> Div (a, b)
-    let c4 = Div (term_L * (Int(lcm / coefficient_L)), Int lcm) <! Div(term_U * (Int(lcm / coefficient_U)), Int lcm)
+        
+    let c4 = SmartDiv (term_L * (Int (lcm / coefficient_L)), Int lcm) <! SmartDiv (term_U * (Int(lcm / coefficient_U)), Int lcm)
     c4 :: (c1 @ c2 @ c3)

@@ -208,7 +208,10 @@ let z3_formula_mapper (ctx: Context) =
 
 let z3fy_expression ctx = fold (z3_formula_mapper ctx) (fun x -> x)
 
-
+let SmartDiv (a, b) = // simplify division
+        match b with
+        | Integer (1u, _) -> a
+        | b -> Div (a, b)
 
 let tuplify_list2 list =
     match list with
