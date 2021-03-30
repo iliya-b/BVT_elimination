@@ -10,7 +10,7 @@ open FormulaActions
 open Substitution
 open Bvt
 
-let rec MbpZ (M: IDictionary<string, uint32>) (x: VarVector) cube =
+let MbpZ (M: IDictionary<string, uint32>) (x: VarVector) cube =
     let rec Loop acc cube =
         let residual, open_conjuncts = List.partition (formula_contains (Var x)) cube
         let acc = open_conjuncts @ acc
