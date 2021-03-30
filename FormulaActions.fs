@@ -24,7 +24,6 @@ let rec is_LIA_term term =
      | Plus (a, b)  -> (is_LIA_term a) && (is_LIA_term b)
      | Inv a -> is_LIA_term a
      | Extract _ -> false
-     | BV _ -> false
      | _ -> false
 let rec is_LIA_formula formula =
     match formula with
@@ -164,7 +163,7 @@ let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or
         | ZeroEx (t, d) -> unary_op (fun t -> _ZeroEx t d) t
         | Extract (t, a, b) -> unary_op (fun t -> _Extract t a b) t
         | Ite(t, a, b) -> Triple ((fun c e1 e2 -> _Ite c e1 e2), Formula t, Term a, Term b)
-        | BV _ -> failwith "BV should not be used"
+
         
         
 let convert_z3 expr =

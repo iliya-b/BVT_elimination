@@ -15,3 +15,11 @@ let lcmlist list = List.reduce (fun a b -> lcm(a, b)) list
 
 let pown_2 (power: uint32) = pown 2 (int power) |> uint32
  
+ 
+ 
+let (%%) a b = // python-like mod
+    let c = a % b
+    if c < 0u then
+        b + c
+    else
+        c

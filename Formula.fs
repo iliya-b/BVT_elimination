@@ -2,13 +2,8 @@ module BVTProver.Formula
 open System
 open System.Collections
 open Helpers
+open MathHelpers
 
-let (%%) a b = // python-like mod
-    let c = a % b
-    if c < 0u then
-        b + c
-    else
-        c
 let private MaxInt = uint32 Int32.MaxValue
 
 type IntVector = uint32*uint32 // value*bit_len
@@ -16,7 +11,6 @@ type VarVector = string*uint32
 
 type Term =
     | Integer of IntVector
-    | BV of BitArray 
     | Var of VarVector
     | Mult of Term*Term
     | Plus of Term*Term
@@ -75,7 +69,6 @@ let Int bit_len (N: uint32) =
 let (|Int|_|) x =
     match x with
      | Integer (x, _) -> Some x
-     | BV x -> Some (integer_of_bits x)
      | _ -> None
 type Term with
     static member ZeroM = Int 0u

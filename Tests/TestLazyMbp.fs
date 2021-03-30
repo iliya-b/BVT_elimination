@@ -3,6 +3,7 @@ module Tests.TestLazyMbp
 
 open System
 open System.Collections.Generic
+open System.IO
 open System.Linq.Expressions
 open BVTProver
 open Microsoft.Z3
@@ -36,50 +37,19 @@ let TestLazyMbpProducesAnApproximation () =
     Assert.True (is_tautology (And lazy_mbp => Exists(Var x, And f)))
     
 
-
-//[<Test>]
-//let TestMbpOnBenchmark() =
-//    let ctx = new Context()
-//
-//    let has_lia_Literal (file: string) = 
-//        let file = "/Volumes/MyPassport/bvt/QF_BV/" + ((file.Split ":").[0])
-//        
-//        let benchmark_formulae = (ctx.ParseSMTLIB2File file)
-//        let to_formula = function | Formula f -> f | _ -> unexpected ()
-//        
-//        let ignore_exception f e =
-//            try
-//                f e
-//            with
-//            | :? System.Exception as e -> False
-//            
-//        let our_formulae = Array.map ( ignore_exception (convert_z3>>to_formula)) benchmark_formulae
-//        
-//        
-//        let convert_const (z3_const: KeyValuePair<FuncDecl, Expr>) =
-//            let key, value = z3_const.Key, z3_const.Value :?> BitVecNum
-//            Var (key.Name.ToString(), value.SortSize), Integer (value.UInt, value.SortSize)
-//        
-//        Array.tryFind is_LIA_formula our_formulae
-//    
-//    let lia = Array.ofSeq (Seq.take 100 (Seq.choose has_lia_Literal (files.Split "\n")))
-//    
-//    Assert.True true
-
-//    Assert.True true
-
 [<Test>]
 let TestBenchmarkConverting() =
     let ctx = new Context()
     let file = "./bvt/samples/bench_10.smt2.txt"
-    
+    let solver = ctx.MkSolver() 
+
     let benchmark_formulae = ctx.ParseSMTLIB2File(file)
     let our_formulae = Array.map (convert_z3>>(z3fy_expression ctx)) benchmark_formulae
     
     let test_iff (a: Expr) (b: Expr) =
-        let solver = ctx.MkSolver()
-        solver.Add(ctx.MkNot(ctx.MkIff(a :?> BoolExpr, b :?> BoolExpr)))
-        let s = solver.Check()
+        solver.Reset ()
+        solver.Add (ctx.MkNot(ctx.MkIff(a :?> BoolExpr, b :?> BoolExpr)))
+        let s = solver.Check ()
         s=Status.UNSATISFIABLE
         
     let ok = Array.forall2 test_iff benchmark_formulae our_formulae
