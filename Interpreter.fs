@@ -2,6 +2,7 @@ module BVTProver.Interpreter
 open System.Collections.Generic
 open BVTProver
 open Helpers
+open MathHelpers
 open FormulaActions
 open Continuations
 
@@ -13,8 +14,8 @@ let private int_func func x y =
             match x, y with
             | Integer (a, a_len), Integer (b, b_len) when a_len=b_len -> 
                 let value = func (uint64 a) (uint64 b)
-                let modulo = uint32 (pown 2 (int a_len))
-                Integer (uint32 value % modulo, a_len) // todo
+                let modulo = pown_2 a_len
+                Integer (uint32 value % modulo, a_len)
             | _ -> unexpected ()
             
 let private bool_func func x y =
@@ -69,7 +70,7 @@ let private expr_interpreter (model: IDictionary<string, uint32>) =
             extract
             (fun _ _if _else -> unexpected ()) // todo
             (int_func (/))
-            (function | Integer (a, s) -> Integer ((s |> int |> pown 2 |> uint32) - a, s) | _ -> unexpected ())
+            (function | Integer (a, s) -> Integer ( (pown_2 s) - a, s) | _ -> unexpected ())
 
 
 let interpret_term model T =

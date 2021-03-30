@@ -1,8 +1,6 @@
 module BVTProver.Formula
 open System
-open System.Collections
 open Helpers
-open MathHelpers
 
 let private MaxInt = uint32 Int32.MaxValue
 
@@ -30,7 +28,7 @@ and Formula =
     | Iff of Formula*Formula
     | Implies of Formula*Formula
     | Not of Formula
-    | Exists of (Term*Formula)
+    | Exists of Term*Formula
     | Le of Term*Term
     | SLe of Term*Term
     | Lt of Term*Term
@@ -56,11 +54,11 @@ and Formula =
             | _ -> unexpected ()
 
 
-    static member (~-) t = Not(t)
-    static member (=>) (t1, t2) = Implies(t1, t2)
-    static member (<=>) (t1, t2) = Iff(t1, t2)
+    static member (~-) t = Not t
+    static member (=>) (t1, t2) = Implies (t1, t2)
+    static member (<=>) (t1, t2) = Iff (t1, t2)
 
-let Int bit_len (N: uint32) = 
+let Int bit_len N = 
     if N > MaxInt then
         failwith "Supporting only 0 <= x <= Int32.MaxValue"
     else

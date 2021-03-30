@@ -81,8 +81,8 @@ let z3_mapper e =
     let unary_bool op (t: Expr) =  Unary ((fun e1 -> Formula (op (as_formula e1))), t)
     let unary_op op (t: Expr) =  Unary ((fun e1 -> Term (op (as_term e1))), t)
     let And (a, b) = And [a ; b]
-    let Or (a, b) = Or [a ; b] // we are not usually given big conjunctions as input
-
+    let Or (a, b) = Or [a ; b]
+    
     match e with
         | ZEquals (t1, t2) -> bin_predicate Equals t1 t2
         | ZLe (t1, t2) -> bin_predicate Le t1 t2
@@ -102,8 +102,6 @@ let z3_mapper e =
         | ZUDiv (t1, t2) ->  bin_op Div t1 t2  
         | ZSDiv (t1, t2) ->  bin_op Div t1 t2  // todo
         | ZURem (t1, t2) ->  bin_op (fun (a, b) -> a - (Div(a, b) * b)) t1 t2  
-//        | ZSRem (t1, t2) ->  // todo
-//        | ZSMod (t1, t2) ->  // todo
         | ZPlus (t1, t2) -> bin_op Plus t1 t2  
         | ZBVAnd (t1, t2) -> bin_op BitAnd t1 t2  
         | ZBVOr (t1, t2) -> bin_op BitOr t1 t2  
@@ -235,22 +233,6 @@ let (|ThisVar|_|) (x: VarVector) (e: Term) =
     | t when t = (Var x) -> Some()
     | _ -> None
 
-
-let (|+) (|Pattern1|_|) (|Pattern2|_|) =
-    let (|UnionPattern|_|) e =
-        match e with
-            | Pattern1 a | Pattern2 a -> Some(a)
-            | _ -> None
-    (|UnionPattern|_|)
-    
-    
-    
-let get_bit_length term =
-    match term with
-    | Var (_, s)
-    | Integer(_, s) -> s
-    | _ -> unexpected ()
-    
 
 let private get_model_z3 (ctx: Context) (expr: Expr) =    
     let solver = ctx.MkSolver()
