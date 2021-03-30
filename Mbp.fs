@@ -10,24 +10,21 @@ open FormulaActions
 open Substitution
 open Bvt
 
-
 let rec MbpZ (M: IDictionary<string, uint32>) (x: VarVector) cube =
-    let MbpZ = MbpZ M x
-    
-    let residual, open_conjuncts = List.partition (formula_contains (Var x)) cube
-
-    if List.length residual = 0 then
-        open_conjuncts
-    else
-        let rewritten = // explanations inside
-            match residual with
-            | Rule1 M x _ -> residual
-            | Rule2 M x all_conjuncts -> apply_rule2 M x all_conjuncts
-            | Rule3 M x conjunct -> (apply_rule3 M x conjunct) @ (MbpZ (List.except [conjunct] residual)) 
-            | Rule4 M x conjunct -> (apply_rule4 M x conjunct) @ (MbpZ (List.except [conjunct] residual))
-            | cube -> List.map (x --> M) cube
-
-        open_conjuncts @ rewritten
+    let rec Loop acc cube =
+        let residual, open_conjuncts = List.partition (formula_contains (Var x)) cube
+        let acc = open_conjuncts @ acc
+        match residual with
+        | [] -> acc
+        | Rule1 M x _ -> residual
+        | Rule2 M x all_conjuncts ->
+            acc @ apply_rule2 M x all_conjuncts
+        | Rule3 M x conjunct ->
+            Loop ((apply_rule3 M x conjunct) @ acc) (List.except [conjunct] residual)
+        | Rule4 M x conjunct ->
+            Loop ((apply_rule4 M x conjunct) @ acc) (List.except [conjunct] residual)
+        | cube -> acc @ List.map (x --> M) cube
+    Loop [] cube
 
 let private TryRewrite rewriter f =
     match rewriter f with
