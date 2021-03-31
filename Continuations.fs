@@ -14,6 +14,7 @@ type RecursiveTuple<'b, 'a> =
     | Bin of ('a->'a->'a)*'b*'b
     | Triple of ('a->'a->'a->'a)*'b*'b*'b
     | Unary of ('a->'a)*'b
+    | List of ('a list->'a)*('b list)
     | Const of ('a)
 
 
@@ -24,3 +25,5 @@ let rec fold (map: 'a -> RecursiveTuple<'a, 'b>) (acc: 'b->'b) (x: 'a) : 'b =
              | Triple(op, a, b, c) -> triple_op op fold acc a b c
              | Unary(op, a) ->  unary_op op fold acc a
              | Const (op) -> acc op 
+             | List (op, lst) -> acc (op (List.map (fold (fun x -> x)) lst ))
+             // this case is not tail recursive

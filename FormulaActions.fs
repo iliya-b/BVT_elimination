@@ -80,8 +80,7 @@ let z3_mapper e =
     let bin_op op (t1: Expr) t2 =  Bin ((fun e1 e2 -> Term (op (as_term e1, as_term e2))), t1, t2)
     let unary_bool op (t: Expr) =  Unary ((fun e1 -> Formula (op (as_formula e1))), t)
     let unary_op op (t: Expr) =  Unary ((fun e1 -> Term (op (as_term e1))), t)
-    let And (a, b) = And [a ; b]
-    let Or (a, b) = Or [a ; b]
+    let bool_array op args =  List ((fun lst -> Formula (op (List.map as_formula lst))), args |> List.ofArray |> List.map (fun e -> e:>Expr))
     
     match e with
         | ZEquals (t1, t2) -> bin_predicate Equals t1 t2
@@ -89,9 +88,8 @@ let z3_mapper e =
         | ZLt (t1, t2) -> bin_predicate Lt t1 t2
         | ZSLe (t1, t2) -> bin_predicate SLe t1 t2
         | ZSLt (t1, t2) -> bin_predicate SLt t1 t2
-        | ZCONJ [| t1 ; t2 |] -> bin_bunch And t1 t2
-        | ZDISJ [| t1 ; t2 |] -> bin_bunch Or t1 t2
-        | ZDISJ _ | ZCONJ _ -> failwith "Expected exactly two arguments for a Disjunction/Conjunction"
+        | ZCONJ args -> bool_array And args
+        | ZDISJ args -> bool_array Or args
         | ZNot t -> unary_bool Not t
         | ZImplies (l, r) -> bin_bunch Implies l r
         | ZExists (var, t) ->  unary_bool (fun t -> Exists(Var (var.ToString(), 0u), t)) t

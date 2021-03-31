@@ -25,6 +25,7 @@
         <Compile Include="Rules\Rule3.fs" />
         <Compile Include="Rules\Rule4.fs" />
         <Compile Include="Mbp.fs" />
+        <Compile Include="Program.fs" />
     </ItemGroup>
 
     <ItemGroup>
