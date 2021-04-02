@@ -2,6 +2,7 @@ module BVTProver.Formula
 open System
 open Helpers
 open MathHelpers
+open Microsoft.Z3
 
 let private MaxInt = uint32 Int32.MaxValue
 
@@ -15,17 +16,28 @@ type Term =
     | Plus of Term*Term
     | Inv of Term
     | Div of Term*Term
+    | SDiv of Term*Term
+    
+    | SRem of Term*Term
+    | Rem of Term*Term
+    | SMod of Term*Term
+    
     | Extract of Term*int*int
+    | Concat of Term*Term
     | BitAnd of Term*Term
     | BitOr of Term*Term
+    | BitXor of Term*Term
+    | BitNot of Term
     | ShiftLeft of Term*Term
     | ShiftRightLogical of Term*Term
     | ZeroEx of Term*int
     | Ite of Formula*Term*Term
 
+
 and Formula =
     | And of Formula list
     | Or of Formula list
+    | Xor of Formula list
     | Iff of Formula*Formula
     | Implies of Formula*Formula
     | Not of Formula
@@ -43,6 +55,7 @@ and Formula =
         match this with 
             | And args -> sprintf "And(%s)" (join args)
             | Or args -> sprintf "Or(%s)" (join args)
+            | Xor args -> sprintf "Xor(%s)" (join args)
             | True -> "True"
             | False -> "False"
             | Exists(name, F) -> sprintf "Exists(%O, %O)" name F 
@@ -60,8 +73,10 @@ and Formula =
     static member (<=>) (t1, t2) = Iff (t1, t2)
 
 let Int bit_len N = 
-    if N > MaxInt || N >= (pown_2 bit_len) || N < 0u then
+    if N > MaxInt || N > (pown_2 bit_len - 1UL |> uint32) || N < 0u then
         failwith "Overflow"
+    elif bit_len=0u then
+        failwith "zero bitlen"
     else
         Integer (N, bit_len)
         
@@ -97,15 +112,25 @@ type Term with
 
     override this.ToString() =
         match this with 
-            | Var (name, size) -> sprintf "%s" name
+            | Var (name, _) -> sprintf "%s" name
             | Mult (t1, t2) -> sprintf "(%O*%O)" t1 t2
+            | ZeroEx (t, d) -> sprintf " ex(%O, %d) " t d
+            | ShiftLeft (t1, t2) -> sprintf "(%O<<<%O)" t1 t2
+            | ShiftRightLogical (t1, t2) -> sprintf "(%O>>>%O)" t1 t2
+            | BitAnd (t1, t2) -> sprintf "(%O&&&%O)" t1 t2
+            | BitOr (t1, t2) -> sprintf "(%O|||%O)" t1 t2
+            | BitXor (t1, t2) -> sprintf "(%O^^^%O)" t1 t2
+            | BitNot t -> sprintf "~(%O)" t
             | Plus (t1, Inv t2) -> sprintf "(%O-%O)" t1 t2
             | Plus (t1, t2) -> sprintf "(%O+%O)" t1 t2
             | Inv t -> sprintf "-(%O)" t
-            | Div (t1, Int n) -> sprintf "(%O div %d)" t1 n
-            | Int n -> sprintf "%d" n
+            | Div (t1, t2) -> sprintf "(%O div %O)" t1 t2
+            | SDiv (t1, t2) -> sprintf "(%O sdiv %O)" t1 t2
+            | Integer (n, _) -> sprintf "%d" n
             | Extract(t, a, b) -> sprintf "(%O)[%d..%d]" t a b
+            | Concat(t1, t2) -> sprintf "(%O ^ %O)" t1 t2
             | Ite (f, a, b) -> sprintf "if (%O) then (%O) else (%O)" f a b
-            | _ -> failwith "unknown term"
-    
+            | Rem (t1, t2) -> sprintf "(%O urem %O)" t1 t2
+            | SRem (t1, t2) -> sprintf "(%O srem %O)" t1 t2
+            | SMod (t1, t2) -> sprintf "(%O smod %O)" t1 t2
 

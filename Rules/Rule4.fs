@@ -20,13 +20,13 @@ let private (|ConstDivision|_|) x expr =
     | _ -> None
 
 let private condition_upper bit_len f a b d =
-    let MaxNumber = pown_2 bit_len - 1u
+    let MaxNumber = pown_2 bit_len - 1UL |> uint32
     let Int = Int bit_len
     let One = Int 1u
     
     [ f*(Int a) <== (d + One)*(Int b) - One  ; d <! Div(Int MaxNumber, Int b) ]
 let private condition_lower bit_len f b y g =
-    let MaxNumber = pown_2 bit_len - 1u
+    let MaxNumber = pown_2 bit_len - 1UL|> uint32
     let Int = Int bit_len
     let One = Int 1u
     [ (g + One)*(Int y) - One <! f*(Int b) ; g <! Div(Int MaxNumber, Int y) ]

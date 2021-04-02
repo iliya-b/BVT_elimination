@@ -14,20 +14,26 @@ type Expression =
 
 let rec is_LIA_term term =
     match term with
-     | Int _
+     | Integer _
      | Var _ -> true
-     | Mult (a, Int _) 
-     | Mult (Int _, a)  -> is_LIA_term a // allow multiplication by a constant
-     | Mult _ -> false
+     | Mult (a, b)  -> is_LIA_term a && is_LIA_term b
+
      | Div (a, Int _) -> is_LIA_term a // allow division by a constant
-     | Div _ -> false
+     | Div _ | SDiv _ -> false
      | Plus (a, b)  -> (is_LIA_term a) && (is_LIA_term b)
      | Inv a -> is_LIA_term a
-     | Extract _ -> false
-     | _ -> false
+     | Ite _
+     | Extract _
+     | Concat _ 
+     | ShiftLeft _ 
+     | ShiftRightLogical _ 
+     | ZeroEx _ 
+     | BitAnd _ | BitOr _ | BitXor _ | BitNot _  -> false
+     | SRem _ | Rem _ | SMod _ -> false
 let rec is_LIA_formula formula =
     match formula with
     | And args
+    | Xor args
     | Or args -> List.forall is_LIA_formula args
     | Equals (t1, t2)
     | Le (t1, t2)
@@ -73,7 +79,7 @@ let as_term = function | Term t -> t | _ -> unexpected ()
 let as_formula = function | Formula t -> t | _ -> unexpected ()
 
 
-let z3_mapper e =
+let z3_mapper (e:Expr) =
     
     let bin_bunch op (t1: Expr) (t2: Expr) =  Bin ((fun e1 e2 -> Formula (op (as_formula e1, as_formula e2))), t1, t2)
     let bin_predicate op (t1: Expr) t2 =  Bin ((fun e1 e2 -> Formula (op (as_term e1, as_term e2))), t1, t2)
@@ -81,7 +87,7 @@ let z3_mapper e =
     let unary_bool op (t: Expr) =  Unary ((fun e1 -> Formula (op (as_formula e1))), t)
     let unary_op op (t: Expr) =  Unary ((fun e1 -> Term (op (as_term e1))), t)
     let bool_array op args =  List ((fun lst -> Formula (op (List.map as_formula lst))), args |> List.ofArray |> List.map (fun e -> e:>Expr))
-    
+
     match e with
         | ZEquals (t1, t2) -> bin_predicate Equals t1 t2
         | ZLe (t1, t2) -> bin_predicate Le t1 t2
@@ -90,17 +96,26 @@ let z3_mapper e =
         | ZSLt (t1, t2) -> bin_predicate SLt t1 t2
         | ZCONJ args -> bool_array And args
         | ZDISJ args -> bool_array Or args
+        | ZXOR args -> bool_array Xor args
         | ZNot t -> unary_bool Not t
         | ZImplies (l, r) -> bin_bunch Implies l r
+        | ZIff (l, r) -> bin_bunch Iff l r
         | ZExists (var, t) ->  unary_bool (fun t -> Exists(Var (var.ToString(), 0u), t)) t
         | ZTrue -> Const (Formula True)
         | ZFalse -> Const (Formula False)
         | ZVar (name, s) -> Const (Term (Var (name, s)))
         | ZMult (t1, t2) ->  bin_op Mult t1 t2  
-        | ZUDiv (t1, t2) ->  bin_op Div t1 t2  
-        | ZSDiv (t1, t2) ->  bin_op Div t1 t2  // todo
-        | ZURem (t1, t2) ->  bin_op (fun (a, b) -> a - (Div(a, b) * b)) t1 t2  
+        | ZUDiv (t1, t2) ->   bin_op Div t1 t2  // todo
+        
+        | ZDistinct _ -> failwith "not supporting distinct"
+        | ZSDiv (t1, t2) -> bin_op SDiv t1 t2
+        | ZSRem (t1, t2) -> bin_op SRem t1 t2
+        | ZSMod (t1, t2) -> bin_op SMod t1 t2
+        | ZURem (t1, t2) -> bin_op Rem t1 t2
+        
         | ZPlus (t1, t2) -> bin_op Plus t1 t2  
+        | ZSub (t1, t2) -> bin_op (fun (a, b) -> Plus(a, Inv b)) t1 t2  
+        | ZNeg t -> unary_op Inv t
         | ZBVAnd (t1, t2) -> bin_op BitAnd t1 t2  
         | ZBVOr (t1, t2) -> bin_op BitOr t1 t2  
         | ZBVShR (t1, t2) -> bin_op ShiftRightLogical t1 t2 
@@ -109,11 +124,20 @@ let z3_mapper e =
         | ZBVZeroEx (t, d) -> unary_op (fun t -> ZeroEx (t, d)) t 
         | ZExtract (t, a, b) -> unary_op (fun t -> Extract (t, a, b)) t
         | ZITE(t, a, b) -> Triple ((fun c e1 e2 -> Term (Ite (as_formula c, as_term e1, as_term e2))), t :> Expr, a :> Expr, b :> Expr)
-        | t -> sprintf "unexpected z3 expression %O" t |> failwith
-let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or
+        | ZConcat (t1, t2) -> bin_op Concat t1 t2  
+
+        | ZBVXor (t1, t2) -> bin_op BitXor t1 t2 
+        | ZBVNot t -> unary_op BitNot t
+        
+        | t when t.IsBool && t.IsConst -> failwith "Unsupported bool constant"
+        | t ->
+            let ss = t.ToString()
+            ignore ss
+            sprintf "unexpected z3 expression %O" t |> failwith
+let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or _Xor 
     _Implies _Iff _Exists _Not _True _False _Var _Mult
-    _Plus _BitAnd _BitOr _ShiftRightLogical _ShiftLeft
-    _BV _ZeroEx _Extract _Ite _Div _Inv e =
+    _Plus _BitAnd _BitOr _BitXor _ShiftRightLogical _ShiftLeft
+    _BV _ZeroEx _Extract _Ite _Div _SDiv _SRem _URem _SMod _Inv _Concat _BitNot e =
         
     let bin_bunch op t1 t2 = Bin (op, Formula t1, Formula t2)
     let bin_predicate op t1 t2 = Bin (op, Term t1, Term t2)
@@ -129,13 +153,18 @@ let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or
         | Lt (t1, t2) -> bin_predicate _Lt t1 t2
         | SLe (t1, t2) -> bin_predicate _SLe t1 t2
         | SLt (t1, t2) -> bin_predicate _SLt t1 t2
+        
+        | Xor [a ; b] -> bin_bunch _Xor a b
         | And [a ; b] -> bin_bunch _And a b
         | Or [a ; b] -> bin_bunch _Or a b
+        | Xor [f]
         | Or [f]
         | And [f] -> unary_bool (fun x -> x) f
         | And (t1::tail) -> bin_bunch _And t1 (And tail)
         | Or  (t1::tail) -> bin_bunch _Or t1 (Or tail)
-        | And [] | Or [] -> failwith "Empty And/Or"
+        | Xor  (t1::tail) -> bin_bunch _Xor t1 (Xor tail)
+        | And [] | Or [] | Xor [] -> failwith "Empty And/Or/Xor"
+        
         | Iff (t1, t2) -> bin_bunch _Iff t1 t2
         | Implies (t1, t2) -> bin_bunch _Implies t1 t2
         | Not (t) ->  unary_bool _Not t
@@ -148,13 +177,24 @@ let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or
         match t with
         | Var (name, s) -> Const (_Var name s)
         | Mult (t1, t2) ->  bin_op _Mult t1 t2
+        | Rem (t1, t2) ->  bin_op _URem t1 t2
+        | SRem (t1, t2) ->  bin_op _SRem t1 t2
+        | SMod (t1, t2) ->  bin_op _SMod t1 t2
+        | SDiv (t1, t2) ->  bin_op _SDiv t1 t2
         | Div (t1, t2) ->  bin_op _Div t1 t2
         | Plus (t1, t2) -> bin_op _Plus t1 t2
         | BitAnd (t1, t2) -> bin_op _BitAnd t1 t2
         | BitOr (t1, t2) -> bin_op _BitOr t1 t2
+        | BitXor (t1, t2) -> bin_op _BitXor t1 t2
+        | BitNot t -> unary_op _BitNot t
         | ShiftRightLogical (t1, t2) -> bin_op _ShiftRightLogical t1 t2
         | ShiftLeft (t1, t2) -> bin_op _ShiftLeft t1 t2
-        | Integer (c, size) -> Const (_BV c size)
+        | Concat (t1, t2) -> bin_op _Concat t1 t2
+        | Integer (c, size) ->
+            if size=0u then
+                unexpected ()
+            else
+                Const (_BV c size)
         | Inv t -> unary_op _Inv t
         | ZeroEx (t, d) -> unary_op (fun t -> _ZeroEx t d) t
         | Extract (t, a, b) -> unary_op (fun t -> _Extract t a b) t
@@ -162,13 +202,8 @@ let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or
 
         
         
-let convert_z3 expr =
-    let fold = fold z3_mapper (fun x -> x)
-    let map = List.ofArray >> (List.map (fun e -> e:>Expr |> fold |> as_formula))
-    match expr with  // expect a cube or a literal
-    | ZCONJ args -> args |> map |> And |> Formula
-    | ZDISJ args -> args |> map |> Or |> Formula
-    | expr -> fold expr
+let convert_z3 = fold z3_mapper (fun x -> x)
+
 let z3_formula_mapper (ctx: Context) =
         let as_bvt ((a, b): Expr*Expr) = (a :?> BitVecExpr, b :?> BitVecExpr)
         let as_bool ((a, b): Expr*Expr) = (a :?> BoolExpr, b :?> BoolExpr)
@@ -183,6 +218,7 @@ let z3_formula_mapper (ctx: Context) =
             
             (fun a b -> ctx.MkAnd(a :?> BoolExpr, b :?> BoolExpr) :> Expr)
             (fun a b -> ctx.MkOr(a :?> BoolExpr, b :?> BoolExpr) :> Expr)
+            (fun a b -> ctx.MkXor(a :?> BoolExpr, b :?> BoolExpr) :> Expr)
             
             (bool_op ctx.MkImplies)
             (bool_op ctx.MkIff)
@@ -195,6 +231,7 @@ let z3_formula_mapper (ctx: Context) =
             (op ctx.MkBVAdd)
             (op ctx.MkBVAND)
             (op ctx.MkBVOR)
+            (op ctx.MkBVXOR)
             (op ctx.MkBVLSHR)
             (op ctx.MkBVSHL)
             (fun bits size -> (bits, size) |> ctx.MkBV :> Expr)
@@ -202,7 +239,15 @@ let z3_formula_mapper (ctx: Context) =
             (fun t a b -> (uint32 a, uint32 b, t :?> BitVecExpr) |> ctx.MkExtract :> Expr)
             (fun condition _if _else -> ctx.MkITE(condition :?> BoolExpr, _if :?> BitVecExpr, _else :?> BitVecExpr))
             (op ctx.MkBVUDiv)
+            (op ctx.MkBVSDiv)
+            (op ctx.MkBVSRem)
+            (op ctx.MkBVURem)
+            (op ctx.MkBVSMod)
             (fun a -> a :?> BitVecExpr |> ctx.MkBVNeg :> Expr)
+            (op ctx.MkConcat)
+            (fun t -> (ctx.MkBVNot (t :?> BitVecExpr)) :> Expr)
+
+
 
 let z3fy_expression ctx = fold (z3_formula_mapper ctx) (fun x -> x)
 
@@ -252,3 +297,4 @@ let get_model f =
 
 let has_model = get_model>>Option.isSome
 let is_tautology = Not>>get_model>>Option.isNone
+let is_tautology_z3 (ctx: Context) = ctx.MkNot>>(get_model_z3 ctx)>>Option.isNone

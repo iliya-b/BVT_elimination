@@ -7,37 +7,41 @@ open Continuations
 open Helpers
 
 
-let predicate op a b =
+let private predicate op a b =
     match a, b with
     | Term a, Term b -> op (a, b) |> Formula
     | _ -> unexpected ()
 
-let operation op a b =
+let private operation op a b =
     match a, b with
     | Term a, Term b -> op (a, b) |> Term
     | _ -> unexpected ()
 
-let bool op a b =
+let private bool op a b =
     match a, b with
     | Formula a, Formula b -> op (a, b) |> Formula
     | _ -> unexpected ()
 
-let extract x a b =
+let private extract x a b =
     match x with
     | Term x -> (x, a, b) |> Extract |> Term
     | _ -> unexpected ()
 
-let zero_extend x d =
+let private zero_extend x d =
     match x with
     | Term x -> (x, d) |> ZeroEx |> Term
     | _ -> unexpected ()
-
+let private ite a b c =
+    match a, b, c with
+    | Formula a, Term b, Term c -> (a, b, c) |> Ite |> Term
+    | _ -> unexpected ()
 let replace_term (model: IDictionary<string, Term>) var_name len =
     if model.ContainsKey var_name then
         model.[var_name]
     else
         Var (var_name, len)
     |> Term
+    
 let private expr_substitute (model: IDictionary<string, Term>) =
     let replace_term = replace_term model
     formula_mapper
@@ -48,6 +52,7 @@ let private expr_substitute (model: IDictionary<string, Term>) =
             (predicate SLe)
             (bool (fun (a, b) -> [a; b] |> And))
             (bool (fun (a, b) -> [a; b] |> Or))
+            (bool (fun (a, b) -> [a; b] |> Xor))
             (bool Implies)
             (bool Iff)
             (fun _ _ -> unexpected ()) // cannot substitute \exists
@@ -59,15 +64,22 @@ let private expr_substitute (model: IDictionary<string, Term>) =
             (operation Plus)
             (operation BitAnd)
             (operation BitOr)
+            (operation BitXor)
             (operation ShiftRightLogical)
             (operation ShiftLeft)
             (fun bits size -> (bits, size) |> Term.Integer |> Term)
             zero_extend
             extract
-            (fun _ _ _ -> unexpected ())
+            ite
             (operation Div)
+            (operation SDiv)
+            (operation SRem)
+            (operation Rem)
+            (operation SMod)
             (function Term f -> f |> Inv |> Term | _ -> unexpected ())
-            
+            (operation Concat)
+            (function Term f -> f |> BitNot |> Term | _ -> unexpected ())
+
             
 
 let substitute_formula model F =

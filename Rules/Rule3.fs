@@ -21,7 +21,7 @@ let private (|ConstDivision|_|) x expr =
     | _ -> None
 
 let private (|BoundWithDivision|_|) M x bit_len conjunct =
-    let MaxNumber = pown_2 bit_len - 1u
+    let MaxNumber = pown_2 bit_len - 1UL |> uint32
     let Int = Int bit_len
     match conjunct with
         | Le (ConstDivision x (f, b), FreeOf x d) when M |= (d <== Int (MaxNumber/b)) -> Some (Upper_(f, b, d))
@@ -36,7 +36,7 @@ let (|Rule3|_|) M x cube =
         | _ -> None
 let apply_rule3 M x conjunct =
     let _, bit_len = x
-    let MaxNumber = pown_2 bit_len - 1u
+    let MaxNumber = pown_2 bit_len - 1UL |> uint32
     let Int = Int bit_len
     let One = Int 1u
 

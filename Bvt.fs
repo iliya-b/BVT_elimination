@@ -45,7 +45,7 @@ let private getRules conclusion x =
                 [ [t <== _0-y] ] // inv
             | Le(Mult(Int k1, ThisVar x), Mult(Int k2, ThisVar x)) ->
                 let modulo = pown_2 bit_len
-                [ [var <== Int ((modulo) * k1 / k2 % (modulo)) ] ] // bothx4
+                [ [var <== Int (modulo * (uint64 k1) / (uint64 k2) % modulo |> uint32) ] ] // bothx4
             | _ -> []
      
      

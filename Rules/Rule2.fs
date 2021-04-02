@@ -37,7 +37,7 @@ let private (|Bounds|_|) x conjunct =
 
 let (|Rule2|_|) (M: IDictionary<string, uint32>) x cube =
     let var_name, bit_len = x
-    let MaxNumber = pown_2 bit_len - 1u
+    let MaxNumber = pown_2 bit_len - 1UL |> uint32
     let Int = Int bit_len
 
     let (|Bounds|_|) = (|Bounds|_|) x
@@ -70,7 +70,7 @@ let (|Rule2|_|) (M: IDictionary<string, uint32>) x cube =
 
 let apply_rule2 M x cube =
     let _, bit_len = x
-    let MaxNumber = pown_2 bit_len - 1u
+    let MaxNumber = pown_2 bit_len - 1UL |> uint32
     let Int = Int bit_len
     
     let bounds = cube |> (List.choose ((|Bounds|_|) x))
