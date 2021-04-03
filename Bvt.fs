@@ -46,37 +46,27 @@ let private getRules conclusion x =
             | Le(Mult(Int k1, ThisVar x), Mult(Int k2, ThisVar x)) ->
                 let modulo = pown_2 bit_len
                 [ [var <== Int (modulo * (uint64 k1) / (uint64 k2) % modulo |> uint32) ] ] // bothx4
+                
+            | Le(FreeOf x a, f) -> // xside1 // guarantee to have: a < f(x) or f(x) <= a
+                      [ [ a === Int 0u ] ; [ (a - Int 1u) <! f ] ]
+            | Lt(f, FreeOf x b) -> // xside2
+                [ [ Not (b === Int 0u) ; f <== b - Int 1u ] ]
             | _ -> []
      
-     
-
-let Normalize x M literal =
-    // make literal of form: a < f(x) or f(x) <= a
-    let _, bit_len = x
-    let Int = Int bit_len
-
-    match literal with
-    | Le(FreeOf x a, f) ->
-        if M |= (a === Int 0u) then
-            [ a === Int 0u ]
-        else
-            [ (a - Int 1u) <! f ]
-    | Lt(f, FreeOf x b) ->
-        [ Not (b === Int 0u) ; f <== b - Int 1u ]
-    | t -> [t]
-
 
 let rec Rewrite var model formula = // normalization procedure
     let where_premises_hold premises =
-        let f = List.collect (Rewrite var model) premises
-        if model |= And f then
+        let rewritten_premises = List.choose (Rewrite var model) premises
+        let succeeded = rewritten_premises.Length = premises.Length
+        let f = List.concat rewritten_premises
+        if succeeded && model |= And f then
             Some f
         else
             None
                  
     // todo: assert model |= formula
     match formula with
-    | formula when not (formula_contains (Var var) formula) -> [formula]
+    | formula when not (formula_contains (Var var) formula) -> Some [formula]
     | Lt(_, Mult(Int _, ThisVar var))
     | Lt(_, ThisVar var)
     | Le(Mult(Int _, ThisVar var), _)
@@ -85,10 +75,5 @@ let rec Rewrite var model formula = // normalization procedure
     | Lt(Mult(Int _, ThisVar var), _)
     | Lt(ThisVar var, _)
     | Le(_, Mult(Int _, ThisVar var))
-    | Le(_, ThisVar var) -> [formula]
-    | f ->
-        let applicable_rules = getRules f var
-        let p = List.tryPick where_premises_hold applicable_rules
-        match p with
-        | Some conjuncts -> conjuncts
-        | None -> [False]
+    | Le(_, ThisVar var) -> Some [formula]
+    | f -> List.tryPick where_premises_hold (getRules f var)

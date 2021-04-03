@@ -16,9 +16,9 @@ let TestRule2ByPassesWhenLcmOverflows () =
     let x, a, b = ("x", bit_len), ("a", bit_len), ("b", bit_len)
     let Int = Int bit_len
     
-    let model = [ "a", 0u
-                  "b", 200u
-                  "x", 1u ] |> dict
+    let model = [ a, 0u
+                  b, 200u
+                  x, 1u ] |> dict
     
     let cube = [ Var a <! (Int 99u) * Var x ; (Int 100u) * Var x <== Var b ]
     match cube with
@@ -32,9 +32,9 @@ let TestRule3 () =
     let Int = Int bit_len
     let x, a, b = ("x", 8u), ("a", 8u), ("b", 8u)
     
-    let model = [ "a", 0u
-                  "b", 4u
-                  "x", 1u ] |> dict
+    let model = [ a, 0u
+                  b, 4u
+                  x, 1u ] |> dict
     let f = x
     let free_conjunct = (Int 100u) * Var a <== Var b
     let upper_bound = Div (Var f, Int 3u) <== Var b

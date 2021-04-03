@@ -26,11 +26,11 @@ let TestLazyMbpProducesAnApproximation () =
     let a, b, x = ("a", bit_len), ("b", bit_len), ("x", bit_len)
     let Zero = Int 1u 0u
     let f = [Var a <== Var x ; Var x <! Var b; Extract(Var x, 7, 7)===Zero]
-    let M = [ "x", 64u ; "a", 199u ; "b", 200u ] |> dict
+    let M = dict [ x, 64u ; a, 199u ; b, 200u ] 
     let lazy_mbp = LazyMbp M x f
     printfn "%O" (And lazy_mbp)
 
-    let naive_mbp = List.map (substitute_formula (dict ["x", Int 8u 64u])) f
+    let naive_mbp = List.map (substitute_formula (dict [x, Int 8u 64u])) f
     
     (* check that at least one rule is used *)
     Assert.False (is_tautology (And lazy_mbp <=> And naive_mbp)) 

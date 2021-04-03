@@ -35,7 +35,7 @@ let private (|Bounds|_|) x conjunct =
          
         | _ -> None
 
-let (|Rule2|_|) (M: IDictionary<string, uint32>) x cube =
+let (|Rule2|_|) (M: IDictionary<(string * uint32),uint32>) x cube =
     let var_name, bit_len = x
     let MaxNumber = pown_2 bit_len - 1UL |> uint32
     let Int = Int bit_len
@@ -52,7 +52,7 @@ let (|Rule2|_|) (M: IDictionary<string, uint32>) x cube =
         let LCM = bounds |> (List.map fst) |> lcmlist
         let side_condition num t = t <== Int (MaxNumber/(LCM/num))
     
-        let var_value = M.[var_name]
+        let var_value = M.[x]
         // side conditions
         let lcm_overflows = LCM > MaxNumber
         

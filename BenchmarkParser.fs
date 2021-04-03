@@ -9,10 +9,12 @@ open Helpers
 open Formula
 open FormulaActions
 open Interpreter
-open Substitution
+open Bvt
 open Mbp
+open Microsoft.Z3
 open Z3Patterns
 open Microsoft.Z3
+open Mbp
 
 open System
 open System.IO
@@ -41,7 +43,41 @@ let private is_some_lia_conjuncts i path =
             else
                 return (path, Array.max depth)
     }
+
+
+
+            
+            
+let private get_bv_model (ctx: Context) expressions =
+    let model =
+        expressions
+        |> ctx.MkAnd
+        |> get_model_z3 ctx
+    match model with
+    | Some model when Seq.forall (fun (e: KeyValuePair<FuncDecl, Expr>) -> e.Value.IsBV) model.Consts ->
+        Some (convert_model model)
+    | _ -> None
+
+let private rewritable_linear_count (ctx: Context) expressions =
+    let model = get_bv_model ctx expressions
+    match model with
+    | Some model ->
+        expressions
+        |> Seq.filter is_LIA_z3
+        |> Seq.map (convert_z3 >> as_formula)
+        |> Seq.filter (fun f -> Seq.exists (fun x -> (Rewrite x model f) |> Option.isSome) model.Keys)
+        |> Seq.length
+    | _ -> 0
+        
+
     
+let total_rewritable files =
+        let ctx = new Context()
+        files
+        |> Seq.map (ctx.ParseSMTLIB2File)
+        |> Seq.map (rewritable_linear_count ctx)
+        |> Seq.take 15
+        |> Seq.sum
 let doLazyMbp file =
     let ctx = new Context()
     let solver = ctx.MkSolver ()
@@ -54,22 +90,17 @@ let doLazyMbp file =
     let their_formula = ctx.MkAnd benchmark_formulae
 
     
-    if true then
-        printfn "ok"
-    else
-        printfn "hmm %s" file
-        
-        
         
     solver.Reset ()
     solver.Add benchmark_formulae
     let status = solver.Check ()
     
     if status=Status.UNSATISFIABLE then
-                printfn "%s" file
+                    printfn "%s" file
+                    false
     else
                     if Seq.exists (extract_num>>Option.isNone) solver.Model.Consts then
-                        ignore 0
+                        false // if some variable is not in BVT (e.g. a propositional var)
                     else
                         
                         let inline And (fs: BoolExpr list) = fs |>  List.map (function | :? BoolExpr as e -> e | _ -> unexpected ()) |> Array.ofList |> ctx.MkAnd 
@@ -95,9 +126,9 @@ let doLazyMbp file =
                         let naive_mbp_is_equiv = is_tautology_z3 (And naive_mbp <=>. exists x in_formula)
                         let is_naive = is_tautology_z3 (And res <=>. And naive_mbp)
                         if not naive_mbp_is_equiv && not is_naive && List.length res > 0 then
-                            ignore res
+                            true
                         else
-                            ignore res
+                            false
 let findDeepLinearBenchmarks =     
     let files = File.ReadAllLines("/Volumes/MyPassport/bvt/sat_list2.txt")
     let data =

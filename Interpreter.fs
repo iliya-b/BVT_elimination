@@ -52,7 +52,7 @@ let private zero_extend t d =
              | Integer(t, size) -> Integer(t, size+(uint32 d))
              | _ -> unexpected ()
 
-let private expr_interpreter (model: IDictionary<string, uint32>) =
+let private expr_interpreter (model: IDictionary<string*uint32, uint32>) =
  
         formula_mapper
             (bool_func (=))
@@ -69,7 +69,7 @@ let private expr_interpreter (model: IDictionary<string, uint32>) =
             (function Bool b -> Bool (not b) | _ -> unexpected ())
             (Bool true)
             (Bool false)
-            (fun name s -> Integer (model.[name], s) )
+            (fun name s -> Integer (model.[name, s], s) )
             (int_func (*))
             (int_func (+))
             (int_func (&&&))

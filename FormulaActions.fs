@@ -280,14 +280,13 @@ let (|ThisVar|_|) (x: VarVector) (e: Term) =
     | _ -> None
 
 
-let private get_model_z3 (ctx: Context) (expr: Expr) =    
+let  get_model_z3 (ctx: Context) (expr: Expr) =    
     let solver = ctx.MkSolver()
     solver.Add (expr :?> BoolExpr)
     if solver.Check()=Status.SATISFIABLE then
         Some solver.Model
     else
         None
-let private test_formula_z3 ctx = (get_model_z3 ctx)>>Option.isSome
     
 let get_model f =
     let ctx = new Context()
