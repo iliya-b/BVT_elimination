@@ -80,10 +80,19 @@ let rule3_is_applicable model x conjunct =
         let i = 0
         true
     | _ -> false
-let find_matching_conjuncts file =
-    printfn "Started\n"
+    
+let get_serialized_model file =
     let ctx = new Context()
+    let expressions = ctx.ParseSMTLIB2File file
     let st = Stopwatch.StartNew ()
+    match get_bv_model ctx expressions with
+    | Some model ->
+        st.Stop ()
+        printfn "Total: %f\n" st.Elapsed.TotalSeconds
+        Some (file, model.ToString())
+    | None -> None
+let find_matching_conjuncts file =
+    let ctx = new Context()
     let expressions = ctx.ParseSMTLIB2File file
     match get_bv_model ctx expressions with
     | Some model ->
@@ -92,8 +101,6 @@ let find_matching_conjuncts file =
             |> Seq.map (convert_z3>>as_formula)
             |> Seq.allPairs model.Keys
             |> Seq.exists (fun (x, e) -> rule3_is_applicable model x e)
-        st.Stop ()
-        printfn "Total: %f\n" st.Elapsed.TotalSeconds
         res
     | None -> false
     
