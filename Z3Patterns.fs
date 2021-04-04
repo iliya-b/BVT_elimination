@@ -87,54 +87,7 @@ let (|ZInt|_|) (expr: Expr) =
          | _ -> None
     else
         None
-        
-        
-let (|ZBV|_|) (expr: Expr) =
-    if expr.IsBV && expr.IsNumeral then
-        match expr with
-         | :? BitVecNum as t ->             
-             try
-                 let arr = t.BigInteger.ToByteArray()
-
-                 let bits = BitArray arr
-                 
-                 if BitConverter.IsLittleEndian then
-                     let length = bits.Length;
-                     let mid = (length / 2);
-
-                     for i = 0 to mid-1 do // reverse bits to get BigEndian
-                        let bit = bits.[i]
-                        bits.[i] <- bits.[length - i - 1]
-                        bits.[length - i - 1] <- bit
-                    
-                 let number_length = bits.Length
-                 let vector_length = int t.SortSize
-                 let offset = vector_length - number_length
-                 
-                 if offset = 0 then 
-                     Some (bits)
-                 elif offset > 0 then
-                     let full_vector = BitArray vector_length
-
-                     for i = 0 to number_length-1 do
-                         full_vector.[i+offset] <- bits.[i]
-                         
-                     Some full_vector
-                 else
-                     let full_vector = BitArray vector_length
-
-                     for i = 0 to vector_length-1 do
-                         full_vector.[vector_length-1-i] <- bits.[number_length-1-i]
-                         
-                     Some full_vector
-             with
-               | :? Microsoft.Z3.Z3Exception ->
-                   Some (BitArray 0) // todo ???
                 
-         | _ -> None
-    else
-        None
-        
 
 let (|ZLe|_|) (expr: Expr) =
     if expr.IsBVULE then expr |> get_bvt_args
@@ -178,34 +131,35 @@ let (|ZForAll|_|) (expr: Expr) =
     | :? Quantifier as expr when expr.IsUniversal -> get_bool_args expr
     | _ -> None
 
+let private is_LIA_term_z3 term =
+    let rec Loop (allow_vars: bool) acc term =
 
-
-let rec private is_LIA_term_z3 acc term =
-    let is_LIA_term = is_LIA_term_z3
-    let continuation a b = is_LIA_term (fun a -> a && is_LIA_term acc b) a
-    match term with
-     | ZInt _
-     | ZVar _ -> acc true
-     | ZSub(a,b)
-     | ZPlus (a, b)
-     | ZMult (a, b)  -> continuation a b
-     | ZNeg a
-     | ZUDiv (a, ZInt _) -> is_LIA_term acc a // allow division by a constant
-     | ZUDiv _ | ZSDiv _ -> false
-     | ZExtract _
-     | ZConcat _ 
-     | ZBVShL _ 
-     | ZBVShR _ 
-     | ZBVShRArith _ 
-     | ZBVZeroEx _ 
-     | ZBVAnd _ | ZBVOr _ | ZBVXor _ | ZBVNot _  -> false
-     | ZSRem _ | ZURem _ | ZSMod _ | ZBVComp _ -> false
-     | t when (t.IsBool) -> false
-     | t when t.IsBVSignExtension || t.IsITE -> false
-     | t -> false
-            
+        let continuation a b = Loop allow_vars (fun a -> a && Loop allow_vars acc b) a 
+        match term with
+         | ZVar _ when not allow_vars -> false
+         | ZInt _
+         | ZVar _ ->  acc true
+         | ZSub(a,b)
+         | ZPlus (a, b)
+         | ZMult (a, b)  -> continuation a b
+         | ZNeg a -> Loop allow_vars acc a
+         | ZUDiv (a, b) -> Loop allow_vars (fun a -> a && Loop false acc b) a  // allow division by a constant
+         | ZSDiv _ -> false
+         | ZUDiv _ | ZSDiv _ -> false
+         | ZExtract _
+         | ZConcat _ 
+         | ZBVShL _ 
+         | ZBVShR _ 
+         | ZBVShRArith _ 
+         | ZBVZeroEx _ 
+         | ZBVAnd _ | ZBVOr _ | ZBVXor _ | ZBVNot _  -> false
+         | ZSRem _ | ZURem _ | ZSMod _ | ZBVComp _ -> false
+         | t when (t.IsBool) -> false
+         | t when t.IsBVSignExtension || t.IsITE -> false
+         | t -> false
+    Loop true (fun x -> x) term
 let rec is_LIA_z3 formula =
-    let is_LIA_term = is_LIA_term_z3 (fun x -> x)
+    let is_LIA_term = is_LIA_term_z3
     let is_LIA_formula = is_LIA_z3
     match formula with
     | ZCONJ args

@@ -3,8 +3,10 @@ module BVTProver.BenchmarkParser
 
 open System
 open System.Collections.Generic
+open System.Diagnostics
 open System.IO
 open BVTProver
+open BVTProver.RewriteRules
 open Helpers
 open Formula
 open FormulaActions
@@ -15,6 +17,7 @@ open Microsoft.Z3
 open Z3Patterns
 open Microsoft.Z3
 open Mbp
+open Rule3
 
 open System
 open System.IO
@@ -70,6 +73,28 @@ let private rewritable_linear_count (ctx: Context) expressions =
     | _ -> 0
         
 
+let rule3_is_applicable model x conjunct =
+    let norm = Rewrite x model conjunct
+    match norm with
+    | Some (Rule3 model x _) ->
+        let i = 0
+        true
+    | _ -> false
+let find_matching_conjuncts file =
+    let ctx = new Context()
+    let st = Stopwatch.StartNew ()
+    let expressions = ctx.ParseSMTLIB2File file
+    match get_bv_model ctx expressions with
+    | Some model ->
+        let res =
+            Seq.filter is_LIA_z3 expressions
+            |> Seq.map (convert_z3>>as_formula)
+            |> Seq.allPairs model.Keys
+            |> Seq.exists (fun (x, e) -> rule3_is_applicable model x e)
+        st.Stop ()
+        printfn "Total: %f" st.Elapsed.TotalSeconds
+        res
+    | None -> false
     
 let total_rewritable files =
         let ctx = new Context()

@@ -24,8 +24,13 @@ let private (|BoundWithDivision|_|) M x bit_len conjunct =
     let MaxNumber = pown_2 bit_len - 1UL |> uint32
     let Int = Int bit_len
     match conjunct with
-        | Le (ConstDivision x (f, b), FreeOf x d) when M |= (d <== Int (MaxNumber/b)) -> Some (Upper_(f, b, d))
+        | Le (ConstDivision x (f, b), FreeOf x d) when M |= (d <! Int (MaxNumber/b)) -> Some (Upper_(f, b, d))
         | Lt (FreeOf x d, ConstDivision x (f, b)) when M |= (d <! Int (MaxNumber/b)) -> Some (Lower_(f, b, d))
+        
+        | Le (ConstDivision x (f, b), FreeOf x d) 
+        | Lt (FreeOf x d, ConstDivision x (f, b)) ->
+            let j = 999
+            None
         | _ -> None
 
 

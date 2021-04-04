@@ -70,10 +70,5 @@ let rec Rewrite var model formula = // normalization procedure
     | Lt(_, Mult(Int _, ThisVar var))
     | Lt(_, ThisVar var)
     | Le(Mult(Int _, ThisVar var), _)
-    | Le(ThisVar var, _)
-    
-    | Lt(Mult(Int _, ThisVar var), _)
-    | Lt(ThisVar var, _)
-    | Le(_, Mult(Int _, ThisVar var))
-    | Le(_, ThisVar var) -> Some [formula]
+    | Le(ThisVar var, _) -> Some [formula]
     | f -> List.tryPick where_premises_hold (getRules f var)

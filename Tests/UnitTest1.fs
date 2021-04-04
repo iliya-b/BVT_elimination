@@ -18,7 +18,7 @@ let Setup () =
 [<Test>]
 let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
     let bit_len = 8u
-    let ctx = new Context()
+
     let x = ("x", bit_len)
     let y = ("y", bit_len)
     let c = ("c", bit_len)
@@ -36,13 +36,10 @@ let TestNormalizationImpliesFormulaAndSatisfiedByItsModel () =
     printfn "%O" f
     printfn "%A" rewritten_conjuncts
     
-    let s = ctx.MkSolver()
-    let zf = z3fy_expression ctx (Formula (Not (And rewritten_conjuncts => f)))
-    s.Add(zf :?> BoolExpr)
-
+    Assert.False (is_tautology ((And rewritten_conjuncts <=> f)))
+    Assert.True (is_tautology (And rewritten_conjuncts => f))
     Assert.True(model |= f)
-    Assert.True(List.forall ((|=) model) rewritten_conjuncts)
-    Assert.AreEqual(Status.UNSATISFIABLE, s.Check()) // check rewritten => f
+    Assert.True(model |= (And rewritten_conjuncts))
     
     
 [<Test>]

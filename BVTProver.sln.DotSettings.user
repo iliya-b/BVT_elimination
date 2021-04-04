@@ -1,5 +1,5 @@
 ﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=01be8a66_002Defb4_002D4388_002Dbb8d_002D5e5d81a3ddf1/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="TestLAzy" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=01be8a66_002Defb4_002D4388_002Dbb8d_002D5e5d81a3ddf1/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="TestLAzy" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
     &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.TestLazyMbp.TestLAzy&lt;/TestId&gt;
     &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.Rules&lt;/TestId&gt;
@@ -9,7 +9,7 @@
   &lt;/TestAncestor&gt;
 &lt;/SessionState&gt;</s:String>
 	
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=7195d832_002D1737_002D439b_002D87a1_002D587123a2ff8b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=7195d832_002D1737_002D439b_002D87a1_002D587123a2ff8b/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
   &lt;TestAncestor&gt;
     &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.TestLazyMbp.TestLAzy&lt;/TestId&gt;
     &lt;TestId&gt;NUnit3x::DC55B8C7-3F99-4C83-8112-39186FD09BDC::.NETCoreApp,Version=v3.0::Tests.Rules&lt;/TestId&gt;
