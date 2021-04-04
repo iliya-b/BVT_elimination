@@ -81,6 +81,7 @@ let rule3_is_applicable model x conjunct =
         true
     | _ -> false
 let find_matching_conjuncts file =
+    printfn "Started\n"
     let ctx = new Context()
     let st = Stopwatch.StartNew ()
     let expressions = ctx.ParseSMTLIB2File file
@@ -92,7 +93,7 @@ let find_matching_conjuncts file =
             |> Seq.allPairs model.Keys
             |> Seq.exists (fun (x, e) -> rule3_is_applicable model x e)
         st.Stop ()
-        printfn "Total: %f" st.Elapsed.TotalSeconds
+        printfn "Total: %f\n" st.Elapsed.TotalSeconds
         res
     | None -> false
     

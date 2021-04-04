@@ -282,6 +282,7 @@ let (|ThisVar|_|) (x: VarVector) (e: Term) =
 
 let  get_model_z3 (ctx: Context) (expr: Expr) =    
     let solver = ctx.MkSolver()
+
     solver.Add (expr :?> BoolExpr)
     if solver.Check()=Status.SATISFIABLE then
         Some solver.Model

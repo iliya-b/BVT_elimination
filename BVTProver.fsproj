@@ -30,6 +30,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="FSharp.Collections.ParallelSeq" Version="1.1.4" />
       <PackageReference Include="Microsoft.Z3.x64" Version="4.8.9" />
     </ItemGroup>
 
