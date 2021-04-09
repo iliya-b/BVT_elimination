@@ -83,6 +83,7 @@ let rule3_is_applicable model x conjunct =
     | _ -> false
     
 let get_serialized_model file =
+    eprintfn "%s" file
     let ctx = new Context()
     let expressions = ctx.ParseSMTLIB2File file
     
