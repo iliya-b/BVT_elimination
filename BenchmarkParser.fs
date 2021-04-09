@@ -89,7 +89,7 @@ let get_serialized_model file =
     | Some model ->
         st.Stop ()
 //        printfn "Total: %f\n" st.Elapsed.TotalSeconds
-        let s = Seq.fold (fun acc k -> acc + ";" + k.ToString() + ":" + model.[k].ToString()) "" model.Keys
+        let s = Seq.fold (fun acc k -> acc + k.ToString() + ":" + model.[k].ToString() + ";") "" model.Keys
         Some (file, s)
     | None -> None
 let find_matching_conjuncts file =
