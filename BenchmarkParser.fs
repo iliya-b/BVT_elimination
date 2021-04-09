@@ -49,7 +49,9 @@ let private is_some_lia_conjuncts i path =
 
 
 
-            
+     
+let private is_bv_model (model: Model) =
+    Seq.forall (fun (e: KeyValuePair<FuncDecl, Expr>) -> e.Value.IsBV) model.Consts      
             
 let private get_bv_model (ctx: Context) expressions =
     let model =
@@ -57,8 +59,7 @@ let private get_bv_model (ctx: Context) expressions =
         |> ctx.MkAnd
         |> get_model_z3 ctx
     match model with
-    | Some model when Seq.forall (fun (e: KeyValuePair<FuncDecl, Expr>) -> e.Value.IsBV) model.Consts ->
-        Some (convert_model model)
+    | Some model when is_bv_model model -> Some (convert_model model)
     | _ -> None
 
 let private rewritable_linear_count (ctx: Context) expressions =
@@ -84,14 +85,16 @@ let rule3_is_applicable model x conjunct =
 let get_serialized_model file =
     let ctx = new Context()
     let expressions = ctx.ParseSMTLIB2File file
-    let st = Stopwatch.StartNew ()
-    match get_bv_model ctx expressions with
-    | Some model ->
-        st.Stop ()
-//        printfn "Total: %f\n" st.Elapsed.TotalSeconds
-        let s = Seq.fold (fun acc k -> acc + k.ToString() + ":" + model.[k].ToString() + ";") "" model.Keys
-        Some (file, s)
-    | None -> None
+    
+    let model =
+        expressions
+        |> ctx.MkAnd
+        |> get_model_z3 ctx
+        
+    match model with
+    | Some model when is_bv_model model ->
+        Some (file, model.ToString())
+    | _ -> None
 let find_matching_conjuncts file =
     let ctx = new Context()
     let expressions = ctx.ParseSMTLIB2File file
