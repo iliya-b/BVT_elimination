@@ -20,9 +20,7 @@ let main argv =
     
     let files = File.ReadAllLines "/Volumes/MyPassport/bvt/sat_deep.txt"
     
-    let result =
-        PSeq.choose get_serialized_model (Seq.rev files)
-    for file, model in result do
-        printfn "%s:%s" file model 
+    PSeq.choose get_serialized_model (Seq.rev files)
+    |> PSeq.iter (fun (f,m) -> printfn "%s:%s" f m)
     
     0
