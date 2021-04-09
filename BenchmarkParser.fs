@@ -88,7 +88,7 @@ let get_serialized_model file =
     match get_bv_model ctx expressions with
     | Some model ->
         st.Stop ()
-        printfn "Total: %f\n" st.Elapsed.TotalSeconds
+//        printfn "Total: %f\n" st.Elapsed.TotalSeconds
         Some (file, model.ToString())
     | None -> None
 let find_matching_conjuncts file =
