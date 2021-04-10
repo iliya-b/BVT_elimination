@@ -5,11 +5,32 @@
         <TargetFramework>netcoreapp3.0</TargetFramework>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+      <Tailcalls>true</Tailcalls>
+    </PropertyGroup>
+
     <ItemGroup>
+        <Compile Include="MathHelpers.fs" />
+        <Compile Include="Helpers.fs" />
+        <Compile Include="Continuations.fs" />
+        <Compile Include="Z3Patterns.fs" />
+        <Compile Include="Formula.fs" />
+        <Compile Include="FormulaActions.fs" />
+        <Compile Include="Substitution.fs" />
+        <Compile Include="Interpreter.fs" />
+        <Compile Include="Bvt.fs" />
+        <Folder Include="Tests" />
+        <Compile Include="Rules\Rule1.fs" />
+        <Compile Include="Rules\Rule2.fs" />
+        <Compile Include="Rules\Rule3.fs" />
+        <Compile Include="Rules\Rule4.fs" />
+        <Compile Include="Mbp.fs" />
+        <Compile Include="BenchmarkParser.fs" />
         <Compile Include="Program.fs" />
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="FSharp.Collections.ParallelSeq" Version="1.1.4" />
       <PackageReference Include="Microsoft.Z3.x64" Version="4.8.9" />
     </ItemGroup>
 
