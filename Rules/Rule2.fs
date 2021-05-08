@@ -13,8 +13,8 @@ MbpZ (M,ψ ∧ {a_i<α_i×x} ∧ {β_j×x≤b_j}) =
 *)
 
 type private BoundingInequality =
-    | Upper of uint32*Term
-    | Lower of uint32*Term
+    | Upper of uint32*Term // β×x ≤ b
+    | Lower of uint32*Term // a < α×x
     static member tuplify = function Upper (a, b) | Lower (a, b) -> (a, b)
     static member is_upper = function Upper _ -> true | _ -> false
        
@@ -80,8 +80,15 @@ let apply_rule2 M x cube =
     let interpreted = function | Upper (num, t) | Lower (num, t) -> (interpret_term M t |> fst) * (lcm / num)
  
     
-    let sup = upper_bounds |> List.minBy interpreted |> BoundingInequality.tuplify
-    let inf = lower_bounds |> List.maxBy interpreted |> BoundingInequality.tuplify
+    let sup =
+        match upper_bounds with
+        | [] -> MaxNumber, Var x 
+        | list -> list |> List.minBy interpreted |> BoundingInequality.tuplify
+        
+    let inf =
+        match lower_bounds with
+        | [] -> 0u, Var x
+        | list -> list |> List.maxBy interpreted |> BoundingInequality.tuplify
     
     let coefficient_L, term_L = inf
     let coefficient_U, term_U = sup

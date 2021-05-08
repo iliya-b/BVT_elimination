@@ -81,7 +81,15 @@ let rule3_is_applicable model x conjunct =
         let i = 0
         true
     | _ -> false
-    
+
+let  get_model_z3_many (ctx: Context) (expr: BoolExpr[]) =    
+    let solver = ctx.MkSolver()
+
+    solver.Add (expr)
+    if solver.Check()=Status.SATISFIABLE then
+        Some solver.Model
+    else
+        None    
 let get_serialized_model file =
     eprintfn "%s" file
     let ctx = new Context()
@@ -89,8 +97,7 @@ let get_serialized_model file =
     
     let model =
         expressions
-        |> ctx.MkAnd
-        |> get_model_z3 ctx
+        |> get_model_z3_many ctx
         
     match model with
     | Some model when is_bv_model model ->
@@ -116,41 +123,25 @@ let total_rewritable files =
         |> Seq.map (rewritable_linear_count ctx)
         |> Seq.take 15
         |> Seq.sum
-let doLazyMbp file =
-    let ctx = new Context()
-    let solver = ctx.MkSolver ()
-    let i = 0
-    let benchmark_formulae = ctx.ParseSMTLIB2File(file)
-    let is_tautology_z3 = is_tautology_z3 ctx
-    
-    
-
-    let their_formula = ctx.MkAnd benchmark_formulae
-
-    
+let doLazyMbp (ctx: Context) (model: Model) benchmark_formulae =
         
-    solver.Reset ()
-    solver.Add benchmark_formulae
-    let status = solver.Check ()
+    let is_tautology_z3 = is_tautology_z3 ctx
+        
     
-    if status=Status.UNSATISFIABLE then
-                    printfn "%s" file
-                    false
-    else
-                    if Seq.exists (extract_num>>Option.isNone) solver.Model.Consts then
+    if Seq.exists (extract_num>>Option.isNone) model.Consts then
                         false // if some variable is not in BVT (e.g. a propositional var)
-                    else
+    else
                         
                         let inline And (fs: BoolExpr list) = fs |>  List.map (function | :? BoolExpr as e -> e | _ -> unexpected ()) |> Array.ofList |> ctx.MkAnd 
                         let inline exists x f = ctx.MkExists([| x |], f)
                         let inline (=>.) f1 f2 = ctx.MkImplies(f1, f2)
                         let inline (<=>.) f1 f2 = ctx.MkIff(f1, f2)
                         
-                        let x = solver.Model.ConstDecls.[0]
+                        let x = model.ConstDecls.[0]
                         let benchmark_formulae = List.ofArray benchmark_formulae
-                        let res = Z3_LazyMbp ctx solver.Model x benchmark_formulae
+                        let res = Z3_LazyMbp ctx model x benchmark_formulae
                         let var_value =
-                            (solver.Model.Consts
+                            (model.Consts
                             |> Seq.find (fun (e: KeyValuePair<FuncDecl, Expr>) -> e.Key=x)).Value :?> BitVecNum
                         
                         let x = (x.Name.ToString (), var_value.SortSize) |> ctx.MkBVConst
@@ -163,7 +154,8 @@ let doLazyMbp file =
                         let naive_mbp_is_correct = is_tautology_z3 (And naive_mbp =>. exists x in_formula)
                         let naive_mbp_is_equiv = is_tautology_z3 (And naive_mbp <=>. exists x in_formula)
                         let is_naive = is_tautology_z3 (And res <=>. And naive_mbp)
-                        if not naive_mbp_is_equiv && not is_naive && List.length res > 0 then
+                        if not is_naive && List.length res > 0 then
+                            let k = 1
                             true
                         else
                             false

@@ -16,6 +16,8 @@ type RecursiveTuple<'b, 'a> =
     | Unary of ('a->'a)*'b
     | List of ('a list->'a)*('b list)
     | Const of ('a)
+    
+    
 
 
 let rec fold (map: 'a -> RecursiveTuple<'a, 'b>) (acc: 'b->'b) (x: 'a) : 'b =

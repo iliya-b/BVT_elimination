@@ -19,7 +19,7 @@ let MbpZ (M: IDictionary<VarVector, uint32>) (x: VarVector) cube =
         let acc = open_conjuncts @ acc
         match residual with
         | [] -> acc
-        | Rule1 M x _ -> acc @ residual
+        | Rule1 M x _ -> acc
         | Rule2 M x all_conjuncts ->
             acc @ apply_rule2 M x all_conjuncts
         | Rule3 M x conjunct ->
