@@ -68,12 +68,13 @@ let main argv =
     let files = File.ReadAllLines file_of_sats
     
     let is_deep_and_linear =
-        Seq.filter is_LIA_z3 >> Seq.exists (z3_depth_formula 0 >> (<=) 4)
+        Seq.filter is_LIA_z3 >> Seq.exists (z3_depth_formula 0 >> (<=) 2)
         
     let ctx = new Context()
     let debug_ f =
         printfn "%s" f
         f
+        
     let deep_linear_benchmarks =
         Seq.filter ((<>) "/Volumes/MyPassport/bvt/QF_BV/2019-Mann/ridecore-qf_bv-bug.smt2") >>
         Seq.filter ((<>) "/Volumes/MyPassport/bvt/QF_BV/Sage2/bench_16265.smt2") >>
