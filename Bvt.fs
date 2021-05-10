@@ -1,4 +1,6 @@
 module BVTProver.Bvt
+open Microsoft.Z3
+open Z3Patterns
 
 open Formula
 open FormulaActions
@@ -54,16 +56,17 @@ let private getRules conclusion x =
             | _ -> []
      
 
-let rec Rewrite var model formula = // normalization procedure
+let rec private Rewrite_i  i var model formula = // normalization procedure, Exponential complexity
     let where_premises_hold premises =
-        let rewritten_premises = List.choose (Rewrite var model) premises
+        let rewritten_premises = List.choose (Rewrite_i (i+1) var model ) premises
         let succeeded = rewritten_premises.Length = premises.Length
         let f = List.concat rewritten_premises
         if succeeded && model |= And f then
             Some f
         else
             None
-                 
+    
+    // printfn "%s" (String.replicate i "-")
     // todo: assert model |= formula
     match formula with
     | formula when not (formula_contains (Var var) formula) -> Some [formula]
@@ -72,3 +75,23 @@ let rec Rewrite var model formula = // normalization procedure
     | Le(Mult(Int _, ThisVar var), _)
     | Le(ThisVar var, _) -> Some [formula]
     | f -> List.tryPick where_premises_hold (getRules f var)
+let Rewrite: string * uint32 -> System.Collections.Generic.IDictionary<(string * uint32),uint32> -> Formula -> Formula list option =
+    Rewrite_i 1
+
+let TryRewrite var model f = // rewrite if it is possible, otherwise return original formula
+    let depth = (z3_depth_formula 0 (z3fy_expression (new Context ()) (Formula f) :?> BoolExpr))
+//    printfn "Depth: %d" depth
+    if depth >= 16 then
+        // printfn "failed"
+        [f]
+    else
+        match Rewrite var model f with
+        | None ->
+            // printfn "failed"
+            [f]
+        | Some cube ->
+//            if is_tautology (And cube => f) && model |= (And cube) then
+//                printfn "rewritten ok"
+//            else
+//                printfn "rewritten bad"
+            cube

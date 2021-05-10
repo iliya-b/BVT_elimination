@@ -29,10 +29,7 @@ let MbpZ (M: IDictionary<VarVector, uint32>) (x: VarVector) cube =
         | cube -> acc @ List.map (x --> M) cube
     Loop [] cube
 
-let private TryRewrite rewriter f =
-    match rewriter f with
-    | None -> [f]
-    | Some list -> list
+
     
 
 let var_vector func_decl (model: Model) =
@@ -42,20 +39,19 @@ let var_vector func_decl (model: Model) =
                         
     (func_decl.Name.ToString (), var_value.SortSize), var_value
 let convert_model (z3_model: Model) =
-        let raw_model = z3_model.Consts |> List.ofSeq
-        raw_model |> List.map (fun x -> (x.Key.Name.ToString(), (x.Value :?> BitVecNum).SortSize), (x.Value :?> BitVecNum).UInt)
-         |> dict
+    let raw_model = z3_model.Consts |> List.ofSeq
+    raw_model |> List.map (fun x -> (x.Key.Name.ToString(), (x.Value :?> BitVecNum).SortSize), (x.Value :?> BitVecNum).UInt)
+    |> dict
+    
 
 let LazyMbp M x cube =  // bit_len is related to arithmetic part
-    let Rewrite = TryRewrite (Rewrite x M)
-
     let raw_linear_part, bvt_part = List.partition is_LIA_formula cube
     
     if List.length raw_linear_part < 0 then
         []
     else
         let linear_conjuncts = // make literals with x be like f(x) <= a or a<f(x)
-            List.collect Rewrite raw_linear_part
+            List.collect (TryRewrite x M) raw_linear_part
         
         let P = MbpZ M x linear_conjuncts
         
@@ -80,8 +76,8 @@ let LazyMbp M x cube =  // bit_len is related to arithmetic part
         P @ List.fold remove_unnecessary_projections S S
         
 
-let Z3_LazyMbp (ctx: Context) (z3_model: Model) (var: FuncDecl) (cube: BoolExpr list) =  // bit_len is related to arithmetic part
-
+let Z3_LazyMbp (ctx: Context) (z3_model: Model) (var: FuncDecl) (cube: BoolExpr list) =
+    
     let x, var_value = var_vector var z3_model
   
     if snd x = 1u then
@@ -90,7 +86,6 @@ let Z3_LazyMbp (ctx: Context) (z3_model: Model) (var: FuncDecl) (cube: BoolExpr 
         let is_tautology_z3 = is_tautology_z3 ctx
             
         let M = convert_model z3_model
-        let Rewrite = TryRewrite (Rewrite x M)
 
         let existential = ctx.MkExists([| x |> ctx.MkBVConst |], ctx.MkAnd cube)
 
@@ -100,7 +95,7 @@ let Z3_LazyMbp (ctx: Context) (z3_model: Model) (var: FuncDecl) (cube: BoolExpr 
         let linear_conjuncts =
             raw_linear_part
             |> List.map (convert_z3>>as_formula)
-            |> List.collect Rewrite
+            |> List.collect (TryRewrite x M)
 
                     
         let P =
