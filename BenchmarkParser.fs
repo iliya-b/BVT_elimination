@@ -21,7 +21,7 @@ open RewriteRules.Rule3
 open RewriteRules.Rule4
 open System
 
-let is_bv_model (model: Model) =
+let private is_bv_model (model: Model) =
     Seq.forall (fun (e: KeyValuePair<FuncDecl, Expr>) -> e.Value.IsBV) model.Consts      
 
 
