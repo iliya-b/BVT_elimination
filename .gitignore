@@ -5,3 +5,5 @@ obj/
 riderModule.iml
 /_ReSharper.Caches/
 /.idea
+.DS_Store
+
