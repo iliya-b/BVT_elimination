@@ -66,15 +66,19 @@ let rec formula_contains var expr =
     let term_contains = term_contains var
     match expr with
     | And args
+    | Xor args
     | Or args -> List.exists contains args
     | Equals (t1, t2)
+    | SLe (t1, t2)
+    | SLt (t1, t2)
     | Le (t1, t2)
     | Lt (t1, t2) -> term_contains t1 || term_contains t2
     | Implies (t1, t2)
     | Iff (t1, t2) -> contains t1 || contains t2
     | Exists (_, t)
     | Not t -> contains t
-    | _ -> false
+    | False
+    | True -> false
 let as_term = function | Term t -> t | _ -> unexpected ()
 let as_formula = function | Formula t -> t | _ -> unexpected ()
 
@@ -282,6 +286,7 @@ let (|ThisVar|_|) (x: VarVector) (e: Term) =
 
 let  get_model_z3 (ctx: Context) (expr: Expr) =    
     let solver = ctx.MkSolver()
+    solver.Set("timeout", 5000u) // todo make configurable
 
     solver.Add (expr :?> BoolExpr)
     if solver.Check()=Status.SATISFIABLE then

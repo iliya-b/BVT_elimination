@@ -184,7 +184,7 @@ let rec is_LIA_z3 formula =
 
 
 let rec private z3_depth_term (acc: int) term =
-    if acc >= 100 then
+    if acc >= 20 then
         acc
     else
         let z3_depth_term = z3_depth_term (acc+1)

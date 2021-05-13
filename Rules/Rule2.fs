@@ -82,12 +82,12 @@ let apply_rule2 M x cube =
     
     let sup =
         match upper_bounds with
-        | [] -> MaxNumber, Var x 
+        | [] -> 1u, Int MaxNumber
         | list -> list |> List.minBy interpreted |> BoundingInequality.tuplify
         
     let inf =
         match lower_bounds with
-        | [] -> 0u, Var x
+        | [] -> 1u, Int 0u
         | list -> list |> List.maxBy interpreted |> BoundingInequality.tuplify
     
     let coefficient_L, term_L = inf

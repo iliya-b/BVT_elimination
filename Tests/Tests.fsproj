@@ -17,7 +17,6 @@
   <ItemGroup>
     <Compile Include="UnitTest1.fs" />
     <Compile Include="TestRules.fs" />
-    <Compile Include="TestLazyMbp.fs" />
   </ItemGroup>
 
   <ItemGroup>
