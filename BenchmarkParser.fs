@@ -1,265 +1,193 @@
 module BVTProver.BenchmarkParser
 
 
-open System
 open System.Collections.Generic
+open Microsoft.Z3
+
 open System.Diagnostics
-open System.IO
 open BVTProver
-open BVTProver.RewriteRules
 open Helpers
-open Formula
-open FormulaActions
-open Interpreter
+open System.IO
 open Bvt
 open Mbp
+open Formula
+open FormulaActions
 open Microsoft.Z3
 open Z3Patterns
-open Microsoft.Z3
-open Mbp
-open Rule3
-
+open Substitution
+open RewriteRules.Rule1
+open RewriteRules.Rule2
+open RewriteRules.Rule3
+open RewriteRules.Rule4
 open System
-open System.IO
-let private extract_num  (e: KeyValuePair<FuncDecl, Expr>) =
-    match e.Value with
-    | :? BitVecNum as e -> Some e
-    | _ -> None
-    
-    
-// good: /Volumes/MyPassport/bvt/QF_BV/2018-Goel-hwbench/QF_BV_bv_bv_eq_sdp_v5_cc_ref_max.smt2
-let private is_some_lia_conjuncts i path =
-    async {
-        if path="/Volumes/MyPassport/bvt/QF_BV/2019-Mann/ridecore-qf_bv-bug.smt2" then
-            return (path, 0)
-        else 
-            let ctx = new Context()
-            let j = i
-           
-           
-            let benchmark_formulae = ctx.ParseSMTLIB2File(path)
-            
-            let arithmetic_part = benchmark_formulae |> Array.filter is_LIA_z3
-            let depth = Array.map (z3_depth_formula 0) arithmetic_part
-            if Array.length depth = 0 then
-                return (path, 0)
-            else
-                return (path, Array.max depth)
-    }
 
-
-
-     
 let private is_bv_model (model: Model) =
     Seq.forall (fun (e: KeyValuePair<FuncDecl, Expr>) -> e.Value.IsBV) model.Consts      
-            
-let private get_bv_model (ctx: Context) expressions =
-    let model =
-        expressions
-        |> ctx.MkAnd
-        |> get_model_z3 ctx
-    match model with
-    | Some model when is_bv_model model -> Some (convert_model model)
-    | _ -> None
 
-let private rewritable_linear_count (ctx: Context) expressions =
-    let model = get_bv_model ctx expressions
-    match model with
-    | Some model ->
-        expressions
-        |> Seq.filter is_LIA_z3
-        |> Seq.map (convert_z3 >> as_formula)
-        |> Seq.filter (fun f -> Seq.exists (fun x -> (Rewrite x model f) |> Option.isSome) model.Keys)
-        |> Seq.length
-    | _ -> 0
+
         
-
-let rule3_is_applicable model x conjunct =
-    let norm = Rewrite x model conjunct
-    match norm with
-    | Some (Rule3 model x _) ->
-        let i = 0
-        true
-    | _ -> false
-    
-let get_serialized_model file =
-    eprintfn "%s" file
-    let ctx = new Context()
-    let expressions = ctx.ParseSMTLIB2File file
-    
-    let model =
-        expressions
-        |> ctx.MkAnd
-        |> get_model_z3 ctx
-        
-    match model with
-    | Some model when is_bv_model model ->
-        Some (file, model.ToString())
-    | _ -> None
-let find_matching_conjuncts file =
-    let ctx = new Context()
-    let expressions = ctx.ParseSMTLIB2File file
-    match get_bv_model ctx expressions with
-    | Some model ->
-        let res =
-            Seq.filter is_LIA_z3 expressions
-            |> Seq.map (convert_z3>>as_formula)
-            |> Seq.allPairs model.Keys
-            |> Seq.exists (fun (x, e) -> rule3_is_applicable model x e)
-        res
-    | None -> false
-    
-let total_rewritable files =
-        let ctx = new Context()
-        files
-        |> Seq.map (ctx.ParseSMTLIB2File)
-        |> Seq.map (rewritable_linear_count ctx)
-        |> Seq.take 15
-        |> Seq.sum
-let doLazyMbp file =
-    let ctx = new Context()
-    let solver = ctx.MkSolver ()
-    let i = 0
-    let benchmark_formulae = ctx.ParseSMTLIB2File(file)
-    let is_tautology_z3 = is_tautology_z3 ctx
-    
-    
-
-    let their_formula = ctx.MkAnd benchmark_formulae
-
-    
-        
-    solver.Reset ()
-    solver.Add benchmark_formulae
-    let status = solver.Check ()
-    
-    if status=Status.UNSATISFIABLE then
-                    printfn "%s" file
-                    false
+let get_model_z3_many (ctx: Context) (expr: BoolExpr[]) =    
+    let solver = ctx.MkSolver()
+    solver.Set("timeout", 5000u) // todo make configurable
+    solver.Add (expr) 
+    if solver.Check()=Status.SATISFIABLE then
+        Some solver.Model
+    elif solver.Check()=Status.UNKNOWN then
+        None
     else
-                    if Seq.exists (extract_num>>Option.isNone) solver.Model.Consts then
-                        false // if some variable is not in BVT (e.g. a propositional var)
-                    else
-                        
-                        let inline And (fs: BoolExpr list) = fs |>  List.map (function | :? BoolExpr as e -> e | _ -> unexpected ()) |> Array.ofList |> ctx.MkAnd 
-                        let inline exists x f = ctx.MkExists([| x |], f)
-                        let inline (=>.) f1 f2 = ctx.MkImplies(f1, f2)
-                        let inline (<=>.) f1 f2 = ctx.MkIff(f1, f2)
-                        
-                        let x = solver.Model.ConstDecls.[0]
-                        let benchmark_formulae = List.ofArray benchmark_formulae
-                        let res = Z3_LazyMbp ctx solver.Model x benchmark_formulae
-                        let var_value =
-                            (solver.Model.Consts
-                            |> Seq.find (fun (e: KeyValuePair<FuncDecl, Expr>) -> e.Key=x)).Value :?> BitVecNum
-                        
-                        let x = (x.Name.ToString (), var_value.SortSize) |> ctx.MkBVConst
-                        let naive_mbp = List.map (fun (e: BoolExpr) -> e.Substitute ( x , var_value) :?> BoolExpr) benchmark_formulae
-                        let in_formula = And benchmark_formulae
-                        let ss = List.map (fun x -> x.ToString()) res
-                        let ss2 = List.map (fun x -> x.ToString()) benchmark_formulae
-                        let is_approximation = is_tautology_z3 (And res =>. exists x in_formula)
-                        let is_equiv = is_tautology_z3 (And res <=>. exists  x in_formula)
-                        let naive_mbp_is_correct = is_tautology_z3 (And naive_mbp =>. exists x in_formula)
-                        let naive_mbp_is_equiv = is_tautology_z3 (And naive_mbp <=>. exists x in_formula)
-                        let is_naive = is_tautology_z3 (And res <=>. And naive_mbp)
-                        if not naive_mbp_is_equiv && not is_naive && List.length res > 0 then
-                            true
-                        else
-                            false
-let findDeepLinearBenchmarks =     
-    let files = File.ReadAllLines("/Volumes/MyPassport/bvt/sat_list2.txt")
-    let data =
-        files
-        |> Seq.mapi is_some_lia_conjuncts
-        |> Seq.take 1000
-        |> Async.Parallel
-        |> Async.RunSynchronously
-        |> Seq.filter (snd>>((>=) 4))
-        |> Seq.map fst
-        |> List.ofSeq
-    let s = String.Join(",", List.map (fun x -> x.ToString()) data)
-    s
-//    let ctx = new Context()
-//   // 1.9G exclude: /Volumes/MyPassport/bvt/QF_BV/2019-Mann/ridecore-qf_bv-bug.smt2
-//    // 1M: /Volumes/MyPassport/bvt/QF_BV/Sage2/bench_10590.smt2
-//    let mutable found = []
-//
-//    for file in files do
-//        let file = (file.Split ":").[0]
-//        let file = "/Volumes/MyPassport/bvt/QF_BV/" + file
-//
-//        let benchmark_formulae = ctx.ParseSMTLIB2File(file)
-//        
-//        let arithmetic_part = benchmark_formulae |> Array.filter is_LIA_z3
-//        let depth = Array.map (z3_depth_formula 0) arithmetic_part
-//        if Array.length depth > 0 then
-//            let max_depth = Array.max depth
-//            printfn "%d" max_depth
-//            ignore max_depth
-//        else
-//            ignore 0
+        None
 
-//        solver.Add benchmark_formulae 
-//        let s = solver.Check ()
-        
-//        File.WriteAllText ("/tmp/z3_model.smt.txt", solver.Model.ToString())
-//        let cube = List.ofArray <| Array.map (convert_z3>>as_formula) arithmetic_part
+let private deserialize_model (ctx: Context) m =
+    let s = ctx.MkSolver()
+    s.FromString m
+    match s.Check() with
+    | Status.SATISFIABLE -> Some s.Model
+    | _ -> None
 
-               
-//        let i = 0
-//        
-//        let raw_model = solver.Model.Consts |> List.ofSeq
-//        
-//        let vars = raw_model |> List.map (fun x -> x.Key.Name.ToString(), (x.Value :?> BitVecNum).UInt)
-//        let model = vars |> dict
-//        let x = (raw_model.[i].Key.Name.ToString(), (raw_model.[i].Value :?> BitVecNum).SortSize)
-//        let res = LazyMbp model x cube
-        
-//        ignore res
-    
-        
-//        let opt =
-//            try
-//                let vars = raw_model |> List.map (fun x -> x.Key.Name.ToString(), (x.Value :?> BitVecNum).UInt)
-//                let model = vars |> dict
-//                (List.ofArray <| Array.map (convert_z3>>as_formula) benchmark_formulae, model)
-//                |> Some
-//            with
-//            | :? System.Exception as e -> None
-//        
-//        match opt with
-//        | None -> ignore 0
-//        | Some (cube, model) ->
-//            let our_formula = z3fy_expression ctx (cube |> And |> Formula) :?> BoolExpr
-//            let their_formula = ctx.MkAnd benchmark_formulae
-//            let z3_check = ctx.MkIff (our_formula, their_formula)
-//            solver.Reset ()
-//            solver.Add (ctx.MkNot z3_check)
-//            let status = solver.Check ()
-//                
-//            if status=Status.SATISFIABLE then
-//                let s1 = our_formula.ToString()
-//                let s2 = their_formula.ToString()
-//                printfn "%s" file
-//            else
-//                let x = (raw_model.[i].Key.Name.ToString(), (raw_model.[i].Value :?> BitVecNum).SortSize)
-//                if 1u=snd x then
-//                    ignore 0
-//                else
-//                    let res = LazyMbp model x cube
-//                    if res=[] then
-//                        ignore 0
-//                    else
-//                        let naive_mbp = List.map (x --> model) cube
-//                        
-//                        let ss = List.map (fun x -> x.ToString()) res
-//                        let ss2 = List.map (fun x -> x.ToString()) cube
-//                        let is_approximation = is_tautology (And res => Exists (Var x, And cube))
-//                        let is_equiv = is_tautology (And res <=> Exists (Var x, And cube))
-//                        let naive_mbp_is_correct = is_tautology (And naive_mbp => Exists (Var x, And cube))
-//                        let naive_mbp_is_equiv = is_tautology (And naive_mbp <=> Exists (Var x, And cube))
-//                        let is_naive = is_tautology (And res <=> And naive_mbp)
-//                        ignore ss
-//            // exception: bit vector length must be >0  
-        
+let private get_mid_element values =
+    let mid = (Seq.length values) / 2
+    values |> Seq.take (Math.Max(mid, 1)) |> Seq.last
+
+(* check that cube is rewritable w.r.t the model & the random var in the model *)
+let is_rewritable cube (model: Model) =
+    let model = convert_model model
+    let x = get_mid_element model.Keys
+
+    let cube =
+        cube
+        |> List.ofArray
+        |> List.map (convert_z3 >> as_formula)
+        |> List.collect (TryRewrite x model)
+
+    let residual, open_conjuncts =
+        List.partition (formula_contains (Var x)) cube
+
+    match residual with
+    | [] -> false
+    | Rule1 model x _
+    | Rule2 model x _
+    | Rule3 model x _
+    | Rule4 model x _ -> true
+    | _ -> false
+
+type private Result =
+    | ExactButTrivial of int64
+    | Trivial of int64
+    | Interpolation of int64
+    | Failed of int64
+
+let private test_mbpZ raw_cube model =
+    let watch = Stopwatch.StartNew()
+    let model = convert_model model
+    let x = get_mid_element model.Keys
+    let cube =
+        raw_cube
+        |> List.ofArray
+        |> List.map (convert_z3 >> as_formula)
+        |> List.collect (TryRewrite x model)
+
+    let mbp = MbpZ model x cube
+    let time = watch.ElapsedMilliseconds
+
+    let is_interpolation =
+        is_tautology (And mbp => Exists(Var x, And cube))
+
+    let is_trivial =
+        is_tautology (And mbp <=> And(List.map (x --> model) cube))
+
+    let is_correct =
+        not (List.exists (formula_contains (Var x)) mbp)
+
+    let is_ok = is_interpolation && is_correct
+    if is_ok then
+        if is_trivial then
+            let is_equiv =
+                is_tautology (And mbp <=> Exists(Var x, And cube))
+
+            if is_equiv then ExactButTrivial time else Trivial time
+        else
+            Interpolation time
+    else
+        Failed time
+
+
+let testBenchmarkOnModel file linear model =
+    try
+        let part_len = Array.length linear
+
+        let avg_depth = ((linear|> Array.map (z3_depth_formula 1)|> Array.sum) / part_len)
+        if is_bv_model model && model.Decls.Length > 0 && is_rewritable linear model then
+            // model does not have trivial boolean values
+            match test_mbpZ linear model with
+            | ExactButTrivial _ -> "Exact (Trivial) MBP!"
+            | Trivial _ -> "Trivial MBP!"
+            | Interpolation time ->
+                sprintf
+                    "Good Interpolation MBP! | %dms | %d total | %d depth"
+                    time
+                    part_len
+                    avg_depth
+            | Failed _ -> "Bad MBP!"
+            + "| Yes " + file
+        else
+            "No " + file
+    with err -> "No (error)"
+let profileBenchmark (file: string) =
+    let ctx = new Context()
+    let expressions = ctx.ParseSMTLIB2File file
+
+    let linear, residual =
+        expressions
+        |> (Array.partition is_LIA_z3)
+
+    let model = get_model_z3_many ctx linear
+
+    match model with
+    | Some model -> testBenchmarkOnModel file linear model
+    | None -> sprintf "no model (or timeout)| No %s" file
+
+let findBenchmarksWithSupportedSegments file_of_sats =
+//    let file_of_sats = "/Users/null_pointer/RiderProjects/BVTProver/deep_benchmarks2.txt"
+
+    let files = File.ReadAllLines file_of_sats
+
+    let filter =
+        Seq.filter (not<<str_contains "Sage2/bench_17801.smt2") // ignore too huge benchmarks
+        >> Seq.filter (not<<str_contains "Sage2/bench_10590.smt2")
+        >> Seq.filter (not<<str_contains "Sage2/bench_10190.smt2")
+        >> Seq.filter (not<<str_contains "Sage2/bench_1008.smt2")
+        >> Seq.filter (not<<str_contains "Sage2/bench_10130.smt2")
+        >> Seq.filter (not<<str_contains "Sage2/bench_16831.smt2")
+        >> Seq.iter (profileBenchmark >> (printfn "%s"))
+
+    filter files
+    0
+
+let findLinearBenchmarks file_of_sats =
+//    let file_of_sats = "/Volumes/MyPassport/bvt/sat_list2.txt"
+    let files = File.ReadAllLines file_of_sats
+
+    let is_deep_and_linear =
+        Seq.filter is_LIA_z3
+        >> Seq.exists (z3_depth_formula 0 >> (<=) 2)
+
+    let ctx = new Context()
+
+    let deep_linear_benchmarks = // (ignore too huge benchmarks)
+           Seq.filter (not<<str_contains "2019-Mann/ridecore-qf_bv-bug.smt2")
+        >> Seq.filter (not<<str_contains "Sage2/bench_16265.smt2")
+        >> Seq.filter (not<<str_contains "Sage2/bench_3774.smt2")
+        >> Seq.filter (not<<str_contains "Sage2/bench_5994.smt2")
+        >> Seq.filter (ctx.ParseSMTLIB2File >> is_deep_and_linear)
+
+    Seq.iter (printfn "%s") (deep_linear_benchmarks files)
+
+    0
+
+let profileBenchmarks file_with_benchmarks =
+    let files = File.ReadAllLines file_with_benchmarks
+
+    let ok =
+        Array.iter (profileBenchmark >> (printfn "%s")) files
+
+    0

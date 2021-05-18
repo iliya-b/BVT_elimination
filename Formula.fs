@@ -4,7 +4,7 @@ open Helpers
 open MathHelpers
 open Microsoft.Z3
 
-let private MaxInt = uint32 Int32.MaxValue
+let private MaxInt = uint32 UInt32.MaxValue
 
 type IntVector = uint32*uint32 // value*bit_len
 type VarVector = string*uint32
@@ -73,7 +73,7 @@ and Formula =
     static member (<=>) (t1, t2) = Iff (t1, t2)
 
 let Int bit_len N = 
-    if N > MaxInt || N > (pown_2 bit_len - 1UL |> uint32) || N < 0u then
+    if N > (pown_2 bit_len - 1UL |> uint32) || N < 0u then
         failwith "Overflow"
     elif bit_len=0u then
         failwith "zero bitlen"

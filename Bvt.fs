@@ -1,4 +1,6 @@
 module BVTProver.Bvt
+open Microsoft.Z3
+open Z3Patterns
 
 open Formula
 open FormulaActions
@@ -53,22 +55,41 @@ let private getRules conclusion x =
                 [ [ Not (b === Int 0u) ; f <== b - Int 1u ] ]
             | _ -> []
      
-
-let rec Rewrite var model formula = // normalization procedure
+(* Normalization. Rewriting tree < 7 *)
+let rec private Rewrite_i  i var model formula =
     let where_premises_hold premises =
-        let rewritten_premises = List.choose (Rewrite var model) premises
-        let succeeded = rewritten_premises.Length = premises.Length
-        let f = List.concat rewritten_premises
-        if succeeded && model |= And f then
-            Some f
+        let rewritten_premises = Seq.map (Rewrite_i (i+1) var model) premises
+        let succeeded = Seq.forall Option.isSome rewritten_premises
+
+        if succeeded then
+            let f = rewritten_premises
+                    |> Seq.map Option.get
+                    |> Seq.concat
+                    |> List.ofSeq
+            if model |= And f then
+                Some f
+            else
+                None
         else
             None
-                 
+    
+//    printfn "%s" (String.replicate i "-")
     // todo: assert model |= formula
-    match formula with
-    | formula when not (formula_contains (Var var) formula) -> Some [formula]
-    | Lt(_, Mult(Int _, ThisVar var))
-    | Lt(_, ThisVar var)
-    | Le(Mult(Int _, ThisVar var), _)
-    | Le(ThisVar var, _) -> Some [formula]
-    | f -> List.tryPick where_premises_hold (getRules f var)
+    if i >= 7 then
+        None
+    else
+        match formula with
+        | formula when not (formula_contains (Var var) formula) -> Some [formula]
+        | Lt(_, Mult(Int _, ThisVar var))
+        | Lt(_, ThisVar var)
+        | Le(Mult(Int _, ThisVar var), _)
+        | Le(ThisVar var, _) -> Some [formula]
+        | f -> List.tryPick where_premises_hold (getRules f var)
+let Rewrite: string * uint32 -> System.Collections.Generic.IDictionary<(string * uint32),uint32> -> Formula -> Formula list option =
+    Rewrite_i 1
+
+(* Rewrite or keep unchanged *)
+let TryRewrite var model f =
+        match Rewrite var model f with
+        | None -> [f]
+        | Some cube -> cube
