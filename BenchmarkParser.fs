@@ -191,3 +191,60 @@ let profileBenchmarks file_with_benchmarks =
         Array.iter (profileBenchmark >> (printfn "%s")) files
 
     0
+
+
+
+let elimination file =
+    let ctx = new Context()
+    let formulae = List.ofArray (Array.filter is_LIA_z3 (ctx.ParseSMTLIB2File file))
+//    printfn "%d" (Array.length fs)
+//    let formulae = List.ofArray (Array.take 100 (ctx.ParseSMTLIB2File file))
+//    let biggest = Array.get formulae 6
+//        formulae
+//            |> Array.filter is_LIA_z3
+//            |> Array.maxBy (z3_depth_formula 1)
+
+    let solver = ctx.MkSolver ()
+    
+    let mutable GeneralMbp = []
+    solver.Add formulae
+
+        
+    let inline (=>.) a b = ctx.MkImplies (a, b)
+    let inline (<=>.) a b = ctx.MkIff (a, b)
+    let And cube = ctx.MkAnd (Array.ofList cube)
+    let Exists decl cube = ctx.MkExists ([| ctx.MkConst decl |], And cube)    
+    
+    printfn "%O" (solver.Check ())
+        
+    let x = solver.Model.Decls.[28]    
+    while true do
+        printfn "%O" (solver.Check ())            
+            
+        let mbp = Z3_LazyMbp ctx (solver.Model) x formulae
+        
+//        let same = is_tautology_z3 ctx (And mbp <=>. And GeneralMbp)
+        printfn "Elimination len: %d" (List.length GeneralMbp)
+        GeneralMbp <- mbp @ GeneralMbp
+
+        let iff = is_tautology_z3 ctx ((And GeneralMbp) <=>. (Exists x formulae))
+        let implies = is_tautology_z3 ctx ((And GeneralMbp) =>. (Exists x formulae))
+        printfn  "(mbp  => ∃xF)   ≡ %O where x=%O" implies (x.Name)
+        printfn  "(mbp <=> ∃xF)   ≡ %O" (iff)
+            
+        let to_constraint (bv_const: KeyValuePair<FuncDecl, Expr>) =
+                let key, value = bv_const.Key, bv_const.Value
+                ctx.MkEq (ctx.MkConst key, value)
+        let constraints =
+                solver.Model.Consts
+                    |> Seq.map to_constraint
+                    |> Array.ofSeq
+                    |> ctx.MkAnd
+                    |> ctx.MkNot
+//        solver.Reset ()
+    
+        solver.Add ( constraints  )
+
+    //        printfn  "(mbp  => False) ≡ %O" (is_tautology_z3 ctx ((And mbp) =>. ctx.MkFalse()))
+    //        printfn "%O" x
+    0
