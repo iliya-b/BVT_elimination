@@ -56,7 +56,7 @@ let private getRules conclusion x =
             | _ -> []
      
 (* Normalization. Rewriting tree < 7 *)
-let rec private Rewrite_i  i var model formula =
+let rec private Rewrite_i i var model formula =
     let where_premises_hold premises =
         let rewritten_premises = Seq.map (Rewrite_i (i+1) var model) premises
         let succeeded = Seq.forall Option.isSome rewritten_premises
@@ -75,7 +75,7 @@ let rec private Rewrite_i  i var model formula =
     
 //    printfn "%s" (String.replicate i "-")
     // todo: assert model |= formula
-    if i >= 7 then
+    if i >= 7 then // block normalization tree of height >= 7
         None
     else
         match formula with

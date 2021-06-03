@@ -26,7 +26,7 @@ let private is_bv_model (model: Model) =
 
 
         
-let get_model_z3_many (ctx: Context) (expr: BoolExpr[]) =    
+let private get_model_z3_many (ctx: Context) (expr: BoolExpr[]) =    
     let solver = ctx.MkSolver()
     solver.Set("timeout", 5000u) // todo make configurable
     solver.Add (expr) 
@@ -127,8 +127,7 @@ let testBenchmarkOnModel file linear model =
                     time
                     part_len
                     avg_depth
-            | Failed _ -> "Bad MBP!"
-            + "| Yes " + file
+            | Failed _ -> "Bad MBP!" + "| Yes " + file
         else
             "No " + file
     with err -> "No (error)"
@@ -147,8 +146,6 @@ let profileBenchmark (file: string) =
     | None -> sprintf "no model (or timeout)| No %s" file
 
 let findBenchmarksWithSupportedSegments file_of_sats =
-//    let file_of_sats = "/Users/null_pointer/RiderProjects/BVTProver/deep_benchmarks2.txt"
-
     let files = File.ReadAllLines file_of_sats
 
     let filter =
@@ -161,10 +158,8 @@ let findBenchmarksWithSupportedSegments file_of_sats =
         >> Seq.iter (profileBenchmark >> (printfn "%s"))
 
     filter files
-    0
 
 let findLinearBenchmarks file_of_sats =
-//    let file_of_sats = "/Volumes/MyPassport/bvt/sat_list2.txt"
     let files = File.ReadAllLines file_of_sats
 
     let is_deep_and_linear =
@@ -182,12 +177,19 @@ let findLinearBenchmarks file_of_sats =
 
     Seq.iter (printfn "%s") (deep_linear_benchmarks files)
 
-    0
-
 let profileBenchmarks file_with_benchmarks =
     let files = File.ReadAllLines file_with_benchmarks
+    Array.iter (profileBenchmark >> (printfn "%s")) files
 
-    let ok =
-        Array.iter (profileBenchmark >> (printfn "%s")) files
-
+let project_all_vars file =
+    let ctx = new Context()
+    let cube = file |> ctx.ParseSMTLIB2File |> List.ofArray
+    
+    let solver = ctx.MkSolver ()
+    solver.Add cube    
+    solver.Check ()
+    
+    for _x in solver.Model.Decls do
+        let mbp = Z3_LazyMbp ctx (solver.Model) _x cube
+        sprintf "%A\n" mbp
     0
