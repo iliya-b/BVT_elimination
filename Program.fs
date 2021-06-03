@@ -6,4 +6,4 @@ open BenchmarkParser
 
 
 [<EntryPoint>]
-let main argv = project_all_vars argv.[0]
+let main argv = test_projection argv.[0] argv.[1]

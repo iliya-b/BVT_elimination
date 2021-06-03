@@ -31,7 +31,7 @@ let MbpZ (M: IDictionary<VarVector, uint32>) (x: VarVector) cube =
 
     
 
-let private var_vector func_decl (model: Model) =
+let var_vector func_decl (model: Model) =
     let var_value =
             (model.Consts
             |> Seq.find (fun (e: KeyValuePair<FuncDecl, Expr>) -> e.Key=func_decl)).Value :?> BitVecNum
