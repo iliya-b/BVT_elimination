@@ -26,7 +26,7 @@ let private is_bv_model (model: Model) =
 
 
         
-let get_model_z3_many (ctx: Context) (expr: BoolExpr[]) =    
+let private get_model_z3_many (ctx: Context) (expr: BoolExpr[]) =    
     let solver = ctx.MkSolver()
     solver.Set("timeout", 5000u) // todo make configurable
     solver.Add (expr) 

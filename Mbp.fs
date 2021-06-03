@@ -3,7 +3,6 @@ module BVTProver.Mbp
 open System.Collections.Generic
 open Formula
 open Microsoft.Z3
-open Microsoft.Z3
 open RewriteRules.Rule1
 open RewriteRules.Rule2
 open RewriteRules.Rule3
