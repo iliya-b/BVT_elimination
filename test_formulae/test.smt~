@@ -4,4 +4,5 @@
 (assert (bvule a x))
 (assert (bvult x b))
 (assert (= ((_ extract 7 7) x) #b0))
-(assert (not (= a #x00)))
+(assert (= a #x00))
+(assert (not (= b #x00)))

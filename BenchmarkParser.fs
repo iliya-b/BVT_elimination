@@ -181,15 +181,28 @@ let profileBenchmarks file_with_benchmarks =
     let files = File.ReadAllLines file_with_benchmarks
     Array.iter (profileBenchmark >> (printfn "%s")) files
 
-let project_all_vars file =
+let test_projection file varname =
     let ctx = new Context()
     let cube = file |> ctx.ParseSMTLIB2File |> List.ofArray
     
     let solver = ctx.MkSolver ()
-    solver.Add cube    
+    solver.Add cube
     solver.Check ()
     
-    for _x in solver.Model.Decls do
-        let mbp = Z3_LazyMbp ctx (solver.Model) _x cube
-        sprintf "%A\n" mbp
+    let x = Seq.find (fun (d: FuncDecl) -> d.Name.ToString() = varname) solver.Model.Decls
+    let mbp = Z3_LazyMbp ctx (solver.Model) x cube
+    
+    let _, var_value = var_vector x (solver.Model)            
+    let trivial_mbp = List.map (fun (e: BoolExpr) -> e.Substitute (ctx.MkConst x, var_value) :?> BoolExpr) cube
+    
+    let is_approx = is_tautology_z3 ctx (ctx.MkImplies(ctx.MkAnd mbp, ctx.MkExists([| ctx.MkConst x |], ctx.MkAnd cube)))
+    let is_trivial = is_tautology_z3 ctx (ctx.MkIff(ctx.MkAnd mbp, ctx.MkAnd trivial_mbp))
+    
+    let mbp = List.map (fun (e: BoolExpr) -> e.Simplify()) mbp
+    let result = List.fold (sprintf "%s\n(assert %O)") "" mbp
+    
+    printfn "%s" result
+    printfn "Is under-approximation: %O" is_approx
+    printfn "Is trivial: %O" is_trivial
+
     0
