@@ -6,4 +6,4 @@ open BenchmarkParser
 
 
 [<EntryPoint>]
-let main argv = elimination argv.[0]
+let main argv = project_all_vars argv.[0]

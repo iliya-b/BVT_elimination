@@ -32,7 +32,7 @@ let MbpZ (M: IDictionary<VarVector, uint32>) (x: VarVector) cube =
 
     
 
-let var_vector func_decl (model: Model) =
+let private var_vector func_decl (model: Model) =
     let var_value =
             (model.Consts
             |> Seq.find (fun (e: KeyValuePair<FuncDecl, Expr>) -> e.Key=func_decl)).Value :?> BitVecNum
@@ -74,7 +74,7 @@ let Z3_LazyMbp (ctx: Context) (z3_model: Model) (var: FuncDecl) (cube: BoolExpr 
         let implies_existence (fs: BoolExpr list) = ctx.MkImplies (ctx.MkAnd (Array.ofList fs), existential)
         let project = List.map (fun (e: BoolExpr) -> e.Substitute ( x |> ctx.MkBVConst, var_value) :?> BoolExpr)
             
-        let bvt_part_projected    = project bvt_part
+        let bvt_part_projected = project bvt_part
         let S =
             if is_tautology_z3 (implies_existence (bvt_part_projected@P)) then
                 bvt_part_projected
