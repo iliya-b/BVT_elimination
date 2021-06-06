@@ -8,9 +8,9 @@ let private triple_op Op fold acc x y z =
     let accumulator x = fold (fun _x -> (fold (Op x _x) >> acc) z) y
     fold accumulator x
 
-let unary_op Op fold acc x = fold (acc << Op) x
+let private unary_op Op fold acc x = fold (acc << Op) x
 
-type RecursiveTuple<'b, 'a> =
+type internal RecursiveTuple<'b, 'a> =
     | Bin of ('a->'a->'a)*'b*'b
     | Triple of ('a->'a->'a->'a)*'b*'b*'b
     | Unary of ('a->'a)*'b
@@ -20,7 +20,7 @@ type RecursiveTuple<'b, 'a> =
     
 
 
-let rec fold (map: 'a -> RecursiveTuple<'a, 'b>) (acc: 'b->'b) (x: 'a) : 'b =
+let rec internal fold (map: 'a -> RecursiveTuple<'a, 'b>) (acc: 'b->'b) (x: 'a) : 'b =
         let fold = fold map
         match map x with
              | Bin(op, a, b) -> binary_op op fold acc a b

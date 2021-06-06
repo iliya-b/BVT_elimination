@@ -3,6 +3,7 @@ open System.Collections.Generic
 open BVTProver
 open Helpers
 open MathHelpers
+open Formula
 open FormulaActions
 open Continuations
 
