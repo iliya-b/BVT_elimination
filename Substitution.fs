@@ -35,7 +35,7 @@ let private ite a b c =
     match a, b, c with
     | Formula a, Term b, Term c -> (a, b, c) |> Ite |> Term
     | _ -> unexpected ()
-let replace_term (model: IDictionary<VarVector, Term>) x =
+let private replace_term (model: IDictionary<VarVector, Term>) x =
     if model.ContainsKey x then
         model.[x]
     else

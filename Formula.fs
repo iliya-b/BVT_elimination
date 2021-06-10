@@ -134,3 +134,7 @@ type Term with
             | SRem (t1, t2) -> sprintf "(%O srem %O)" t1 t2
             | SMod (t1, t2) -> sprintf "(%O smod %O)" t1 t2
 
+
+type Expression =
+    | Formula of Formula
+    | Term of Term

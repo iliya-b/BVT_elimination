@@ -1,52 +1,11 @@
 module BVTProver.FormulaActions
 
-
 open BVTProver
 open Formula
 open Z3Patterns
 open Microsoft.Z3
 open Helpers
 open Continuations
-
-type Expression =
-    | Formula of Formula
-    | Term of Term
-
-let rec is_LIA_term term =
-    match term with
-     | Integer _
-     | Var _ -> true
-     | Mult (a, b)  -> is_LIA_term a && is_LIA_term b
-
-     | Div (a, Int _) -> is_LIA_term a // allow division by a constant
-     | Div _ | SDiv _ -> false
-     | Plus (a, b)  -> (is_LIA_term a) && (is_LIA_term b)
-     | Inv a -> is_LIA_term a
-     | Ite _
-     | Extract _
-     | Concat _ 
-     | ShiftLeft _ 
-     | ShiftRightLogical _ 
-     | ZeroEx _ 
-     | BitAnd _ | BitOr _ | BitXor _ | BitNot _  -> false
-     | SRem _ | Rem _ | SMod _ -> false
-let rec is_LIA_formula formula =
-    match formula with
-    | And args
-    | Xor args
-    | Or args -> List.forall is_LIA_formula args
-    | Equals (t1, t2)
-    | Le (t1, t2)
-    | SLe (t1, t2)
-    | Lt (t1, t2)
-    | SLt (t1, t2) -> is_LIA_term t1 && is_LIA_term t2
-    | Implies (t1, t2)
-    | Iff (t1, t2) -> is_LIA_formula t1 && is_LIA_formula t2
-    | Exists (_, t)
-    | Not t -> is_LIA_formula t
-    | False
-    | True -> true
-
 
 let rec term_contains var term =
     let contains = term_contains var
@@ -79,11 +38,10 @@ let rec formula_contains var expr =
     | Not t -> contains t
     | False
     | True -> false
-let as_term = function | Term t -> t | _ -> unexpected ()
-let as_formula = function | Formula t -> t | _ -> unexpected ()
+let internal as_term = function | Term t -> t | _ -> unexpected ()
+let internal as_formula = function | Formula t -> t | _ -> unexpected ()
 
-
-let z3_mapper (e:Expr) =
+let internal z3_mapper (e:Expr) =
     
     let bin_bunch op (t1: Expr) (t2: Expr) =  Bin ((fun e1 e2 -> Formula (op (as_formula e1, as_formula e2))), t1, t2)
     let bin_predicate op (t1: Expr) t2 =  Bin ((fun e1 e2 -> Formula (op (as_term e1, as_term e2))), t1, t2)
@@ -138,7 +96,7 @@ let z3_mapper (e:Expr) =
             let ss = t.ToString()
             ignore ss
             sprintf "unexpected z3 expression %O" t |> failwith
-let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or _Xor 
+let internal formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or _Xor 
     _Implies _Iff _Exists _Not _True _False _Var _Mult
     _Plus _BitAnd _BitOr _BitXor _ShiftRightLogical _ShiftLeft
     _BV _ZeroEx _Extract _Ite _Div _SDiv _SRem _URem _SMod _Inv _Concat _BitNot e =
@@ -204,11 +162,7 @@ let formula_mapper _Equals _Le _Lt _SLe _SLt _And _Or _Xor
         | Extract (t, a, b) -> unary_op (fun t -> _Extract t a b) t
         | Ite(t, a, b) -> Triple ((fun c e1 e2 -> _Ite c e1 e2), Formula t, Term a, Term b)
 
-        
-        
-let convert_z3 = fold z3_mapper (fun x -> x)
-
-let z3_formula_mapper (ctx: Context) =
+let internal z3_formula_mapper (ctx: Context) =
         let as_bvt ((a, b): Expr*Expr) = (a :?> BitVecExpr, b :?> BitVecExpr)
         let as_bool ((a, b): Expr*Expr) = (a :?> BoolExpr, b :?> BoolExpr)
         let op Op a b = (a, b) |> as_bvt |> Op :> Expr
@@ -250,38 +204,27 @@ let z3_formula_mapper (ctx: Context) =
             (fun a -> a :?> BitVecExpr |> ctx.MkBVNeg :> Expr)
             (op ctx.MkConcat)
             (fun t -> (ctx.MkBVNot (t :?> BitVecExpr)) :> Expr)
-
-
-
+        
+let convert_z3 = fold z3_mapper (fun x -> x)
 let z3fy_expression ctx = fold (z3_formula_mapper ctx) (fun x -> x)
 
-let SmartDiv (a, b) = // simplify division
+let internal SmartDiv (a, b) = // simplify division
         match b with
         | Integer (1u, _) -> a
         | b -> Div (a, b)
-
-let tuplify_list2 list =
-    match list with
-     | [a; b] -> (a, b)
-     | _ -> failwith "cannot tuplify list"
-
-
-let (|Contains|_|) x (e: Term) =
+let internal (|Contains|_|) x (e: Term) =
     if term_contains x e then Some(e) else None
-
-let (|FreeOf|_|) (x: VarVector) (e: Term) =
+let internal (|FreeOf|_|) (x: VarVector) (e: Term) =
     if not (term_contains (Var x) e) then Some(e) else None
-
-
-let some_matches (|Pattern|_|) expressions =
-        List.tryFind (function | Pattern _ -> true | _ -> false) expressions
-let each_matches (|Pattern|_|) expressions =
-         List.forall (function | Pattern _ -> true | _ -> false) expressions
-        
 let (|ThisVar|_|) (x: VarVector) (e: Term) =
     match e with
     | t when t = (Var x) -> Some()
     | _ -> None
+
+let internal some_matches (|Pattern|_|) expressions =
+        List.tryFind (function | Pattern _ -> true | _ -> false) expressions
+let internal each_matches (|Pattern|_|) expressions =
+         List.forall (function | Pattern _ -> true | _ -> false) expressions
 
 
 let  get_model_z3 (ctx: Context) (expr: Expr) =    

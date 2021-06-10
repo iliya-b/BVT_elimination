@@ -1,4 +1,4 @@
-module BVTProver.Z3Patterns
+module internal BVTProver.Z3Patterns
 
 open System
 open System.Collections
